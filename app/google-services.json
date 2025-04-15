@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "900891953907",
+    "project_id": "habithero-7b97f",
+    "storage_bucket": "habithero-7b97f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:900891953907:android:36cec46750a164e32bc586",
+        "android_client_info": {
+          "package_name": "com.example.habithero"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1Oak9HsDV60lSbHtKa3X6Q_dPhzGMwAI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
