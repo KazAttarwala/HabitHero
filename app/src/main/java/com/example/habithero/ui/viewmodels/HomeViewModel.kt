@@ -24,6 +24,7 @@ class HomeViewModel : ViewModel() {
         loadHabits()
         
         // Add some sample habits if collection is empty
+        // TODO: remove this after testing
         viewModelScope.launch {
             val currentHabits = habitRepository.getHabitsForCurrentUser()
             if (currentHabits.isEmpty()) {
@@ -46,7 +47,8 @@ class HomeViewModel : ViewModel() {
             }
         }
     }
-    
+
+    // TODO: remove this method after testing
     private suspend fun addSampleHabits() {
         val sampleHabits = listOf(
             Habit(title = "Drink Water", description = "Drink 8 glasses of water daily"),
