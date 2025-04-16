@@ -65,6 +65,12 @@ class HomeFragment : Fragment() {
         }
     }
     
+    override fun onResume() {
+        super.onResume()
+        // Reload habits when fragment resumes (e.g., after adding/editing a habit)
+        viewModel.loadHabits()
+    }
+    
     private fun setupRecyclerView() {
         habitAdapter = HabitAdapter(
             onHabitClick = { habit ->
@@ -72,6 +78,9 @@ class HomeFragment : Fragment() {
             },
             onHabitCompleteToggle = { habit ->
                 viewModel.toggleHabitCompletion(habit)
+            },
+            onProgressIncrement = { habit ->
+                viewModel.incrementHabitProgress(habit)
             }
         )
         

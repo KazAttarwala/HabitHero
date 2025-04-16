@@ -14,6 +14,8 @@ alwaysApply: true
 - use anthropic api for llm api integration
 - use retrofit for api calls
 - before you modify any code if there is already unstaged code, stage it first before modifying
+- do not create code that is unused
+- remove unused imports/code where appropriate
 
 
 

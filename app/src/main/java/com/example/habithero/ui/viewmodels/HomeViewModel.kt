@@ -51,9 +51,9 @@ class HomeViewModel : ViewModel() {
     // TODO: remove this method after testing
     private suspend fun addSampleHabits() {
         val sampleHabits = listOf(
-            Habit(title = "Drink Water", description = "Drink 8 glasses of water daily"),
-            Habit(title = "Exercise", description = "30 minutes of exercise"),
-            Habit(title = "Read", description = "Read for 20 minutes")
+            Habit(title = "Drink Water", description = "Drink 8 glasses of water daily", frequency = 8),
+            Habit(title = "Exercise", description = "30 minutes of exercise", frequency = 1),
+            Habit(title = "Read", description = "Read for 20 minutes", frequency = 2)
         )
         
         for (habit in sampleHabits) {
@@ -86,6 +86,46 @@ class HomeViewModel : ViewModel() {
                 loadHabits() // Refresh the list
             } catch (e: Exception) {
                 _error.value = "Failed to update habit: ${e.message}"
+            }
+        }
+    }
+
+    fun incrementHabitProgress(habit: Habit) {
+        viewModelScope.launch {
+            try {
+                // If progress is already at or over frequency, do nothing
+                if (habit.progress >= habit.frequency) return@launch
+                
+                // Increment progress
+                val newProgress = habit.progress + 1
+                // Update completed status if needed
+                val isCompleted = newProgress >= habit.frequency
+                
+                val updatedHabit = habit.copy(
+                    progress = newProgress,
+                    completed = isCompleted
+                )
+                
+                habitRepository.updateHabit(updatedHabit)
+                loadHabits() // Refresh the list
+            } catch (e: Exception) {
+                _error.value = "Failed to update habit progress: ${e.message}"
+            }
+        }
+    }
+    
+    fun resetHabitProgress(habit: Habit) {
+        viewModelScope.launch {
+            try {
+                val updatedHabit = habit.copy(
+                    progress = 0,
+                    completed = false
+                )
+                
+                habitRepository.updateHabit(updatedHabit)
+                loadHabits() // Refresh the list
+            } catch (e: Exception) {
+                _error.value = "Failed to reset habit progress: ${e.message}"
             }
         }
     }
