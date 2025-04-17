@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.habithero.R
 import com.example.habithero.databinding.FragmentLoginBinding
 import com.example.habithero.repository.UserRepository
@@ -52,8 +53,11 @@ class LoginFragment : Fragment() {
         // Set up observers for the quote
         setupQuoteObservers()
         
-        // Start auto-refreshing quotes every 5 seconds
-        quoteViewModel.startAutoRefreshQuotes()
+        // Set up swipe refresh layout
+        setupSwipeRefresh()
+        
+        // Fetch a quote initially
+        quoteViewModel.fetchQuote()
 
         // Handle login button click
         binding.loginButton.setOnClickListener {
@@ -78,6 +82,19 @@ class LoginFragment : Fragment() {
         }
     }
     
+    private fun setupSwipeRefresh() {
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            quoteViewModel.fetchQuote()
+        }
+        
+        // Colors for the refresh indicator
+        binding.swipeRefreshLayout.setColorSchemeResources(
+            R.color.purple_500,
+            R.color.teal_200,
+            R.color.purple_700
+        )
+    }
+    
     private fun setupQuoteObservers() {
         // Observe quote
         quoteViewModel.quote.observe(viewLifecycleOwner) { quoteResponse ->
@@ -87,7 +104,10 @@ class LoginFragment : Fragment() {
         
         // Observe loading state
         quoteViewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            binding.quoteTextView.text = if (isLoading) "Loading quote..." else binding.quoteTextView.text
+            binding.swipeRefreshLayout.isRefreshing = isLoading
+            if (isLoading) {
+                binding.quoteTextView.text = "Loading quote..."
+            }
         }
         
         // Observe errors
@@ -105,8 +125,7 @@ class LoginFragment : Fragment() {
             .addOnCompleteListener { task ->
                 showLoading(false)
                 if (task.isSuccessful) {
-                    // Login successful, stop auto-refreshing quotes
-                    quoteViewModel.stopAutoRefreshQuotes()
+                    // Login successful
                     Toast.makeText(requireContext(), "Login successful", Toast.LENGTH_SHORT).show()
                     findNavController().navigate(R.id.action_loginFragment_to_homeFragment)
                 } else {
@@ -126,8 +145,6 @@ class LoginFragment : Fragment() {
                         userRepository.createUserAfterRegistration(firebaseUser)
                             .addOnSuccessListener {
                                 showLoading(false)
-                                // Stop auto-refreshing quotes
-                                quoteViewModel.stopAutoRefreshQuotes()
                                 Toast.makeText(requireContext(), "Registration successful", Toast.LENGTH_SHORT).show()
                                 findNavController().navigate(R.id.action_loginFragment_to_homeFragment)
                             }
@@ -186,8 +203,6 @@ class LoginFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Ensure we stop the quote timer when the view is destroyed
-        quoteViewModel.stopAutoRefreshQuotes()
         _binding = null
     }
 } 
