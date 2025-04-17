@@ -6,10 +6,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.example.habithero.R
 import com.example.habithero.databinding.FragmentLoginBinding
 import com.example.habithero.repository.UserRepository
+import com.example.habithero.ui.viewmodels.QuoteViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
@@ -22,6 +24,7 @@ class LoginFragment : Fragment() {
     
     private lateinit var auth: FirebaseAuth
     private lateinit var userRepository: UserRepository
+    private val quoteViewModel: QuoteViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -46,6 +49,12 @@ class LoginFragment : Fragment() {
             return
         }
 
+        // Set up observers for the quote
+        setupQuoteObservers()
+        
+        // Fetch a motivational quote
+        quoteViewModel.fetchQuote()
+
         // Handle login button click
         binding.loginButton.setOnClickListener {
             val email = binding.emailEditText.text.toString().trim()
@@ -65,6 +74,28 @@ class LoginFragment : Fragment() {
             if (validateForm(email, password)) {
                 showLoading(true)
                 registerUser(email, password)
+            }
+        }
+    }
+    
+    private fun setupQuoteObservers() {
+        // Observe quote
+        quoteViewModel.quote.observe(viewLifecycleOwner) { quoteResponse ->
+            binding.quoteTextView.text = "\"${quoteResponse.quote}\""
+            binding.quoteAuthorTextView.text = "- ${quoteResponse.author}"
+        }
+        
+        // Observe loading state
+        quoteViewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            binding.quoteTextView.text = if (isLoading) "Loading quote..." else binding.quoteTextView.text
+        }
+        
+        // Observe errors
+        quoteViewModel.error.observe(viewLifecycleOwner) { errorMessage ->
+            errorMessage?.let {
+                // Only log the error, don't show to user as we'll display a fallback quote
+                // We also don't want to annoy the user with quote fetch errors when they're trying to log in
+                // Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
             }
         }
     }
