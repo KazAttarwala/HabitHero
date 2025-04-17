@@ -1,5 +1,6 @@
 package com.example.habithero.api
 
+import android.util.Log
 import com.squareup.moshi.Json
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -33,6 +34,8 @@ data class QuoteResponse(
 )
 
 class AnthropicService {
+    private val TAG = "AnthropicService"
+    
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
@@ -72,12 +75,16 @@ class AnthropicService {
 
         val requestBody = jsonBody.toRequestBody("application/json".toMediaType())
 
+        Log.d(TAG, "Making API request to Anthropic")
         val response = anthropicApi.getQuote(apiKey, "2023-06-01", requestBody)
+        
         if (response.isSuccessful) {
+            Log.d(TAG, "API request successful: ${response.code()}")
             val responseString = response.body()?.string() ?: ""
             
             try {
                 // Parse the response which is in Claude's content format
+                Log.d(TAG, "Parsing response: ${responseString.take(100)}...")
                 val jsonResponse = JSONObject(responseString)
                 val content = jsonResponse.getJSONArray("content")
                 
@@ -88,6 +95,7 @@ class AnthropicService {
                         val text = item.getString("text")
                         
                         // Parse the actual quote JSON from the text content
+                        Log.d(TAG, "Found text content: ${text.take(50)}...")
                         val quoteJson = JSONObject(text)
                         return QuoteResponse(
                             quote = quoteJson.getString("quote"),
@@ -95,12 +103,18 @@ class AnthropicService {
                         )
                     }
                 }
+                Log.e(TAG, "No text content found in response")
                 throw Exception("No text content found in response")
             } catch (e: Exception) {
+                Log.e(TAG, "Failed to parse response: ${e.message}", e)
+                Log.e(TAG, "Response content: $responseString")
                 throw Exception("Failed to parse quote response: ${e.message}")
             }
         } else {
-            throw Exception("Failed to get quote: ${response.errorBody()?.string()}")
+            val errorBody = response.errorBody()?.string()
+            Log.e(TAG, "API request failed: ${response.code()}")
+            Log.e(TAG, "Error body: $errorBody")
+            throw Exception("Failed to get quote: HTTP ${response.code()} - $errorBody")
         }
     }
 }

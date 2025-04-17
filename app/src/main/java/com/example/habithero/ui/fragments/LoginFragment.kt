@@ -52,8 +52,8 @@ class LoginFragment : Fragment() {
         // Set up observers for the quote
         setupQuoteObservers()
         
-        // Fetch a motivational quote
-        quoteViewModel.fetchQuote()
+        // Start auto-refreshing quotes every 5 seconds
+        quoteViewModel.startAutoRefreshQuotes()
 
         // Handle login button click
         binding.loginButton.setOnClickListener {
@@ -105,7 +105,8 @@ class LoginFragment : Fragment() {
             .addOnCompleteListener { task ->
                 showLoading(false)
                 if (task.isSuccessful) {
-                    // Login successful
+                    // Login successful, stop auto-refreshing quotes
+                    quoteViewModel.stopAutoRefreshQuotes()
                     Toast.makeText(requireContext(), "Login successful", Toast.LENGTH_SHORT).show()
                     findNavController().navigate(R.id.action_loginFragment_to_homeFragment)
                 } else {
@@ -125,6 +126,8 @@ class LoginFragment : Fragment() {
                         userRepository.createUserAfterRegistration(firebaseUser)
                             .addOnSuccessListener {
                                 showLoading(false)
+                                // Stop auto-refreshing quotes
+                                quoteViewModel.stopAutoRefreshQuotes()
                                 Toast.makeText(requireContext(), "Registration successful", Toast.LENGTH_SHORT).show()
                                 findNavController().navigate(R.id.action_loginFragment_to_homeFragment)
                             }
@@ -183,6 +186,8 @@ class LoginFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // Ensure we stop the quote timer when the view is destroyed
+        quoteViewModel.stopAutoRefreshQuotes()
         _binding = null
     }
 } 
