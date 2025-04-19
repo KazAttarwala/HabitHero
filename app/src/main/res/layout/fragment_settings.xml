@@ -15,15 +15,97 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Account Settings Section -->
+    <TextView
+        android:id="@+id/accountSettingsHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:text="Account"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/titleTextView" />
+
     <Button
         android:id="@+id/logoutButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="16dp"
         android:text="Logout"
         android:backgroundTint="?attr/colorError"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/titleTextView" />
+        app:layout_constraintTop_toBottomOf="@+id/accountSettingsHeader" />
+
+    <!-- Developer Options Section -->
+    <TextView
+        android:id="@+id/devOptionsHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="48dp"
+        android:text="Developer Options"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/logoutButton" />
+
+    <TextView
+        android:id="@+id/devDescriptionTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="These options are for testing purposes. Generate dummy data to test the app's functionality."
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/devOptionsHeader" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/generateDummyDataButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="8dp"
+        android:text="Random Data"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toStartOf="@+id/generatePatternsButton"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/devDescriptionTextView" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/generatePatternsButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:text="Test Patterns"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toStartOf="@+id/clearDummyDataButton"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/generateDummyDataButton"
+        app:layout_constraintTop_toTopOf="@+id/generateDummyDataButton" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/clearDummyDataButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Clear Data"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/generatePatternsButton"
+        app:layout_constraintTop_toTopOf="@+id/generateDummyDataButton" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout> 
