@@ -89,5 +89,8 @@ dependencies {
     
     // Confetti for visual effects
     implementation("nl.dionsegijn:konfetti-xml:2.0.2")
+    
+    // MPAndroidChart for data visualization
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 }
 
