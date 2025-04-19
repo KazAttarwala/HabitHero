@@ -49,6 +49,13 @@ class InsightsFragment : Fragment() {
         observeViewModel()
     }
     
+    override fun onResume() {
+        super.onResume()
+        // Reload habits when fragment becomes visible again
+        // This ensures new habits are shown in the dropdown
+        viewModel.loadHabits()
+    }
+    
     private fun setupHabitSpinner() {
         habitAdapter = ArrayAdapter(
             requireContext(),
@@ -123,7 +130,7 @@ class InsightsFragment : Fragment() {
             val completionRate = viewModel.getCompletionRate()
             binding.completionRateTextView.text = "$completionRate%"
         }
-        
+
         // Observe loading state
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.loadingProgressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
