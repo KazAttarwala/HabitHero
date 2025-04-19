@@ -15,6 +15,8 @@ import com.example.habithero.model.Habit
 import com.example.habithero.repository.UserRepository
 import com.example.habithero.ui.adapters.HabitAdapter
 import com.example.habithero.ui.viewmodels.HomeViewModel
+import com.example.habithero.utils.HabitCompletionEffect
+import com.example.habithero.utils.SoundFileCreator
 import com.google.firebase.auth.FirebaseAuth
 
 class HomeFragment : Fragment() {
@@ -50,6 +52,9 @@ class HomeFragment : Fragment() {
             return
         }
         
+        // Create a sound file for habit completion (only needed for this example)
+        SoundFileCreator.createSuccessSound(requireContext())
+        
         // Set user email in the UI
         binding.userEmailTextView.text = currentUser.email
         
@@ -78,9 +83,19 @@ class HomeFragment : Fragment() {
             },
             onHabitCompleteToggle = { habit ->
                 viewModel.toggleHabitCompletion(habit)
+                // Play confetti and sound when completed
+                if (!habit.completed) {
+                    HabitCompletionEffect.playCompletionEffects(requireContext(), binding.konfettiView)
+                }
             },
             onProgressIncrement = { habit ->
+                val oldProgress = habit.progress
                 viewModel.incrementHabitProgress(habit)
+                
+                // If this increment caused the habit to be completed, show celebration
+                if (oldProgress + 1 >= habit.frequency) {
+                    HabitCompletionEffect.playCompletionEffects(requireContext(), binding.konfettiView)
+                }
             }
         )
         
@@ -94,7 +109,7 @@ class HomeFragment : Fragment() {
         // Observe habits
         viewModel.habits.observe(viewLifecycleOwner) { habits ->
             habitAdapter.submitList(habits)
-            
+
             // Show/hide empty state
             binding.emptyStateTextView.visibility = if (habits.isEmpty()) View.VISIBLE else View.GONE
         }
