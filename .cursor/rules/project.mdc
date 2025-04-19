@@ -16,6 +16,10 @@ alwaysApply: true
 - before you modify any code if there is already unstaged code, stage it first before modifying
 - do not create code that is unused
 - remove unused imports/code where appropriate
+- put reusable helper functions in separate files
+- try to keep the number of lines of code to a maximum of 200 per file and put files in appropriate directories
+- check first to see if there is code already existing for a given use case before creating new code. Do not create duplicate code
+- follow clean code practices like using abstractions and classes and refactoring complex logic into functions whenever possible
 
 
 
