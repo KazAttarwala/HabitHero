@@ -46,6 +46,30 @@ class HabitEntryRepository {
             return emptyList()
         }
     }
+    
+    /**
+     * Get habit entries within a specific date range
+     * 
+     * @param habitId The ID of the habit to get entries for
+     * @param startDate The start date timestamp (inclusive)
+     * @param endDate The end date timestamp (inclusive)
+     * @return List of habit entries within the date range
+     */
+    suspend fun getHabitEntriesInRange(habitId: String, startDate: Long, endDate: Long): List<HabitEntry> {
+        try {
+            return entriesCollection
+                .whereEqualTo("habitId", habitId)
+                .whereGreaterThanOrEqualTo("date", startDate)
+                .whereLessThanOrEqualTo("date", endDate)
+                .orderBy("date", Query.Direction.ASCENDING)
+                .get()
+                .await()
+                .toObjects(HabitEntry::class.java)
+        } catch (e: Exception) {
+            Log.e("HabitEntryRepository", "Error getting entries in range", e)
+            return emptyList()
+        }
+    }
 
     suspend fun getAllHabitEntriesForUser(): List<HabitEntry> {
         val userId = auth.currentUser?.uid ?: return emptyList()

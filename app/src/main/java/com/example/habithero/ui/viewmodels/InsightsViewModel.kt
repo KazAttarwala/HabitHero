@@ -33,6 +33,13 @@ class InsightsViewModel : ViewModel() {
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
     
+    // Week navigation properties
+    private val _weekOffset = MutableLiveData<Int>(0) // 0 = current week, -1 = last week, etc.
+    val weekOffset: LiveData<Int> = _weekOffset
+    
+    private val _dateRange = MutableLiveData<String>()
+    val dateRange: LiveData<String> = _dateRange
+    
     init {
         loadHabits()
     }
@@ -59,20 +66,45 @@ class InsightsViewModel : ViewModel() {
     
     fun selectHabit(habit: Habit) {
         _selectedHabit.value = habit
-        loadWeeklyData(habit.id)
+        loadWeeklyData(habit.id, _weekOffset.value ?: 0)
     }
     
-    private fun loadWeeklyData(habitId: String) {
+    fun navigateToPreviousWeek() {
+        val currentOffset = _weekOffset.value ?: 0
+        val newOffset = currentOffset - 1
+        _weekOffset.value = newOffset
+        _selectedHabit.value?.let { loadWeeklyData(it.id, newOffset) }
+    }
+    
+    fun navigateToNextWeek() {
+        val currentOffset = _weekOffset.value ?: 0
+        val newOffset = currentOffset + 1
+        // Don't allow navigating to future weeks
+        if (newOffset <= 0) {
+            _weekOffset.value = newOffset
+            _selectedHabit.value?.let { loadWeeklyData(it.id, newOffset) }
+        }
+    }
+    
+    fun resetToCurrentWeek() {
+        _weekOffset.value = 0
+        _selectedHabit.value?.let { loadWeeklyData(it.id, 0) }
+    }
+    
+    private fun loadWeeklyData(habitId: String, weekOffset: Int = 0) {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
                 
-                // Get weekly entries for this habit
-                val entries = habitEntryRepository.getWeeklyHabitEntries(habitId)
+                // Get entries for the selected week
+                val entries = loadEntriesForWeek(habitId, weekOffset)
                 
                 // Create a map of day to progress
-                val weeklyProgress = createWeeklyDataMap(entries)
+                val weeklyProgress = createWeeklyDataMap(entries, weekOffset)
                 _weeklyData.value = weeklyProgress
+                
+                // Update date range
+                updateDateRange(weekOffset)
                 
             } catch (e: Exception) {
                 _error.value = "Failed to load weekly data: ${e.message}"
@@ -82,21 +114,54 @@ class InsightsViewModel : ViewModel() {
         }
     }
     
-    private fun createWeeklyDataMap(entries: List<HabitEntry>): Map<String, Int> {
+    private suspend fun loadEntriesForWeek(habitId: String, weekOffset: Int): List<HabitEntry> {
+        // Calculate the date range for the selected week
+        val calendar = Calendar.getInstance()
+        
+        // If weekOffset is negative, move back that many weeks
+        if (weekOffset < 0) {
+            calendar.add(Calendar.WEEK_OF_YEAR, weekOffset)
+        }
+        
+        // Find the start of the week (Sunday in most cases)
+        val currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+        // Move the calendar to the start of the week
+        calendar.add(Calendar.DAY_OF_YEAR, -(currentDayOfWeek - 1))
+        val weekStart = calendar.timeInMillis
+        
+        // Move to the end of the week
+        calendar.add(Calendar.DAY_OF_YEAR, 6)
+        val weekEnd = calendar.timeInMillis
+        
+        // Get entries in the date range
+        return habitEntryRepository.getHabitEntriesInRange(habitId, weekStart, weekEnd)
+    }
+    
+    private fun createWeeklyDataMap(entries: List<HabitEntry>, weekOffset: Int): Map<String, Int> {
         // Create a map of day labels to progress values
         val dayFormat = SimpleDateFormat("EEE", Locale.getDefault())
         val result = mutableMapOf<String, Int>()
         
-        // Initialize the past 7 days with 0 progress
+        // Initialize the days of the selected week with 0 progress
         val calendar = Calendar.getInstance()
-        // Start from today
+        
+        // Adjust to the selected week
+        if (weekOffset < 0) {
+            calendar.add(Calendar.WEEK_OF_YEAR, weekOffset)
+        }
+        
+        // Find the start of the week
+        val currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+        calendar.add(Calendar.DAY_OF_YEAR, -(currentDayOfWeek - 1))
+        
+        // Collect the days of the week
         val days = mutableListOf<String>()
-        for (i in 6 downTo 0) {
-            calendar.add(Calendar.DAY_OF_YEAR, -i)
+        for (i in 0..6) {
+            // No need to reset the calendar since we're moving forward one day at a time
             val dayLabel = dayFormat.format(calendar.time)
             days.add(dayLabel)
             result[dayLabel] = 0
-            calendar.add(Calendar.DAY_OF_YEAR, i) // Reset back to today
+            calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
         
         // Fill in actual progress data from entries
@@ -117,6 +182,27 @@ class InsightsViewModel : ViewModel() {
         }
         
         return sortedResult
+    }
+    
+    private fun updateDateRange(weekOffset: Int) {
+        val dateFormat = SimpleDateFormat("MMM d", Locale.getDefault())
+        val calendar = Calendar.getInstance()
+        
+        // Adjust to the selected week
+        if (weekOffset < 0) {
+            calendar.add(Calendar.WEEK_OF_YEAR, weekOffset)
+        }
+        
+        // Find the start of the week
+        val currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+        calendar.add(Calendar.DAY_OF_YEAR, -(currentDayOfWeek - 1))
+        val weekStart = dateFormat.format(calendar.time)
+        
+        // Move to the end of the week
+        calendar.add(Calendar.DAY_OF_YEAR, 6)
+        val weekEnd = dateFormat.format(calendar.time)
+        
+        _dateRange.value = "$weekStart - $weekEnd"
     }
     
     fun getCompletionRate(): Int {

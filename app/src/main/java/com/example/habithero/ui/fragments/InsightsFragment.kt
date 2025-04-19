@@ -45,10 +45,13 @@ class InsightsFragment : Fragment() {
         // Set up the bar chart
         setupBarChart()
         
+        // Set up week navigation
+        setupWeekNavigation()
+        
         // Set up observers
         observeViewModel()
     }
-    
+
     override fun onResume() {
         super.onResume()
         // Reload habits when fragment becomes visible again
@@ -103,6 +106,37 @@ class InsightsFragment : Fragment() {
         barChart.animateY(500)
     }
     
+    private fun setupWeekNavigation() {
+        // Previous week button
+        binding.prevWeekButton.setOnClickListener {
+            viewModel.navigateToPreviousWeek()
+        }
+        
+        // Next week button
+        binding.nextWeekButton.setOnClickListener {
+            viewModel.navigateToNextWeek()
+        }
+        
+        // Reset to current week button
+        binding.resetToCurrentWeekButton.setOnClickListener {
+            viewModel.resetToCurrentWeek()
+        }
+        
+        // Disable next week button initially if we're at current week
+        updateWeekNavigationButtons(0)
+    }
+    
+    private fun updateWeekNavigationButtons(weekOffset: Int) {
+        // Only enable the next week button if not at current week
+        binding.nextWeekButton.isEnabled = weekOffset < 0
+        
+        // Always enable the previous week button
+        binding.prevWeekButton.isEnabled = true
+        
+        // Only enable reset button if not at current week
+        binding.resetToCurrentWeekButton.isEnabled = weekOffset < 0
+    }
+    
     private fun observeViewModel() {
         // Observe habits for spinner
         viewModel.habits.observe(viewLifecycleOwner) { habits ->
@@ -129,6 +163,16 @@ class InsightsFragment : Fragment() {
             // Update completion rate when data changes
             val completionRate = viewModel.getCompletionRate()
             binding.completionRateTextView.text = "$completionRate%"
+        }
+        
+        // Observe week offset
+        viewModel.weekOffset.observe(viewLifecycleOwner) { offset ->
+            updateWeekNavigationButtons(offset)
+        }
+        
+        // Observe date range
+        viewModel.dateRange.observe(viewLifecycleOwner) { dateRange ->
+            binding.weekRangeTextView.text = dateRange
         }
 
         // Observe loading state
