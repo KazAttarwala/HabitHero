@@ -15,6 +15,7 @@ import com.google.firebase.Timestamp
 class HomeViewModel : ViewModel() {
     private val habitRepository = HabitRepository()
     private val habitEntryRepository = HabitEntryRepository()
+    private val insightsViewModel = InsightsViewModel()
     
     private val _habits = MutableLiveData<List<Habit>>()
     val habits: LiveData<List<Habit>> = _habits
@@ -53,6 +54,9 @@ class HomeViewModel : ViewModel() {
                 val habitId = habitRepository.addHabit(newHabit)
                 if (habitId != null) {
                     loadHabits() // Refresh the list
+                    // Update insights with the new habit
+                    val updatedHabit = newHabit.copy(id = habitId)
+                    insightsViewModel.selectHabit(updatedHabit)
                 } else {
                     _error.value = "Failed to add habit"
                 }
@@ -95,6 +99,8 @@ class HomeViewModel : ViewModel() {
                     )
                     habitEntryRepository.addHabitEntry(habitEntry)
                     loadHabits()
+                    // Refresh insights data for the updated habit
+                    insightsViewModel.selectHabit(updatedHabit)
                 } else {
                     _error.value = "Failed to update habit"
                 }
