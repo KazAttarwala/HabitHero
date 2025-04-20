@@ -149,8 +149,6 @@ class InsightsFragment : Fragment() {
         
         // Observe selected habit
         viewModel.selectedHabit.observe(viewLifecycleOwner) { habit ->
-            binding.currentStreakTextView.text = "${habit.streak} days"
-            
             // Update completion rate
             val completionRate = viewModel.getCompletionRate()
             binding.completionRateTextView.text = "$completionRate%"
