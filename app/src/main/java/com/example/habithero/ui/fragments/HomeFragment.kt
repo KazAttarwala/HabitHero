@@ -81,13 +81,6 @@ class HomeFragment : Fragment() {
             onHabitClick = { habit ->
                 navigateToEditHabit(habit)
             },
-            onHabitCompleteToggle = { habit ->
-                viewModel.toggleHabitCompletion(habit)
-                // Play confetti and sound when completed
-                if (!habit.completed) {
-                    HabitCompletionEffect.playCompletionEffects(requireContext(), binding.konfettiView)
-                }
-            },
             onProgressIncrement = { habit ->
                 val oldProgress = habit.progress
                 viewModel.incrementHabitProgress(habit)

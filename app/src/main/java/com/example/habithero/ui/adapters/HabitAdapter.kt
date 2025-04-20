@@ -15,7 +15,6 @@ import com.example.habithero.model.Habit
 
 class HabitAdapter(
     private val onHabitClick: (Habit) -> Unit,
-    private val onHabitCompleteToggle: (Habit) -> Unit,
     private val onProgressIncrement: (Habit) -> Unit
 ) : ListAdapter<Habit, HabitAdapter.HabitViewHolder>(HabitDiffCallback()) {
 
@@ -33,7 +32,6 @@ class HabitAdapter(
     inner class HabitViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val titleTextView: TextView = itemView.findViewById(R.id.habitTitleTextView)
         private val descriptionTextView: TextView = itemView.findViewById(R.id.habitDescriptionTextView)
-        private val completedCheckBox: CheckBox = itemView.findViewById(R.id.habitCompletedCheckBox)
         private val progressTextView: TextView = itemView.findViewById(R.id.habitProgressTextView)
         private val progressBar: ProgressBar = itemView.findViewById(R.id.habitProgressBar)
         private val incrementButton: ImageButton = itemView.findViewById(R.id.incrementButton)
@@ -41,7 +39,6 @@ class HabitAdapter(
         fun bind(habit: Habit) {
             titleTextView.text = habit.title
             descriptionTextView.text = habit.description
-            completedCheckBox.isChecked = habit.completed
             
             // Configure progress display
             progressTextView.text = "Progress: ${habit.progress}/${habit.frequency}"
@@ -62,11 +59,6 @@ class HabitAdapter(
                 onHabitClick(habit)
             }
 
-            // Handle checkbox changes
-            completedCheckBox.setOnClickListener {
-                onHabitCompleteToggle(habit)
-            }
-            
             // Handle increment button click
             incrementButton.setOnClickListener {
                 onProgressIncrement(habit)
