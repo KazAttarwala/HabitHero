@@ -49,8 +49,12 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val newHabit = Habit(title = title, description = description)
-                habitRepository.addHabit(newHabit)
-                loadHabits() // Refresh the list
+                val habitId = habitRepository.addHabit(newHabit)
+                if (habitId != null) {
+                    loadHabits() // Refresh the list
+                } else {
+                    _error.value = "Failed to add habit"
+                }
             } catch (e: Exception) {
                 _error.value = "Failed to add habit: ${e.message}"
             }
@@ -78,20 +82,22 @@ class HomeViewModel : ViewModel() {
                     lastCompletedDate = lastCompletedDate
                 )
                 
-                habitRepository.updateHabit(updatedHabit)
-                
-                // Record this in habit entries if we're marking as completed
-                if (newCompleted) {
-                    val habitEntry = HabitEntry(
-                        habitId = habit.id,
-                        date = currentTimeMillis,
-                        progress = habit.progress,
-                        completed = true
-                    )
-                    habitEntryRepository.addHabitEntry(habitEntry)
+                val habitId = habitRepository.updateHabit(updatedHabit)
+                if (habitId != null) {
+                    // Record this in habit entries if we're marking as completed
+                    if (newCompleted) {
+                        val habitEntry = HabitEntry(
+                            habitId = habit.id,
+                            date = currentTimeMillis,
+                            progress = habit.progress,
+                            completed = true
+                        )
+                        habitEntryRepository.addHabitEntry(habitEntry)
+                    }
+                    loadHabits() // Refresh the list
+                } else {
+                    _error.value = "Failed to update habit"
                 }
-                
-                loadHabits() // Refresh the list
             } catch (e: Exception) {
                 _error.value = "Failed to update habit: ${e.message}"
             }
@@ -126,18 +132,20 @@ class HomeViewModel : ViewModel() {
                     lastCompletedDate = lastCompletedDate
                 )
                 
-                habitRepository.updateHabit(updatedHabit)
-                
-                // Record this progress in habit entries
-                val habitEntry = HabitEntry(
-                    habitId = habit.id,
-                    date = currentTimeMillis,
-                    progress = newProgress,
-                    completed = isCompleted
-                )
-                habitEntryRepository.addHabitEntry(habitEntry)
-                
-                loadHabits() // Refresh the list
+                val habitId = habitRepository.updateHabit(updatedHabit)
+                if (habitId != null) {
+                    // Record this progress in habit entries
+                    val habitEntry = HabitEntry(
+                        habitId = habit.id,
+                        date = currentTimeMillis,
+                        progress = newProgress,
+                        completed = isCompleted
+                    )
+                    habitEntryRepository.addHabitEntry(habitEntry)
+                    loadHabits() // Refresh the list
+                } else {
+                    _error.value = "Failed to update habit"
+                }
             } catch (e: Exception) {
                 _error.value = "Failed to update habit progress: ${e.message}"
             }
@@ -190,8 +198,12 @@ class HomeViewModel : ViewModel() {
                     completed = false
                 )
                 
-                habitRepository.updateHabit(updatedHabit)
-                loadHabits() // Refresh the list
+                val habitId = habitRepository.updateHabit(updatedHabit)
+                if (habitId != null) {
+                    loadHabits() // Refresh the list
+                } else {
+                    _error.value = "Failed to reset habit progress"
+                }
             } catch (e: Exception) {
                 _error.value = "Failed to reset habit progress: ${e.message}"
             }

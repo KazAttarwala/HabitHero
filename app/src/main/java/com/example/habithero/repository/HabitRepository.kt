@@ -33,15 +33,42 @@ class HabitRepository {
         }
     }
 
-    suspend fun addHabit(habit: Habit): Boolean {
+    /**
+     * Add a new habit to Firestore
+     * 
+     * @param habit The habit to add (ID will be set by this method)
+     * @return The ID of the created habit, or null if creation failed
+     */
+    suspend fun addHabit(habit: Habit): String? {
         return try {
-            val userId = getCurrentUserId() ?: return false
+            val userId = getCurrentUserId() ?: return null
             val habitId = habitsCollection.document().id
             val newHabit = habit.copy(id = habitId, userId = userId)
             habitsCollection.document(habitId).set(newHabit).await()
-            true
+            habitId
         } catch (e: Exception) {
-            false
+            Log.e("HabitRepository", "Error adding habit", e)
+            null
+        }
+    }
+    
+    /**
+     * Get a habit by its ID
+     * 
+     * @param habitId The ID of the habit to get
+     * @return The habit, or null if not found
+     */
+    suspend fun getHabitById(habitId: String): Habit? {
+        return try {
+            val document = habitsCollection.document(habitId).get().await()
+            if (document.exists()) {
+                document.toObject(Habit::class.java)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("HabitRepository", "Error getting habit by ID", e)
+            null
         }
     }
 

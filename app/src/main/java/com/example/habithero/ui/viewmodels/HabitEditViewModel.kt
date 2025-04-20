@@ -62,7 +62,7 @@ class HabitEditViewModel : ViewModel() {
                 _error.value = null
                 
                 val currentHabit = _habit.value
-                val result = if (currentHabit != null) {
+                val habitId = if (currentHabit != null) {
                     // Update existing habit
                     val updatedHabit = currentHabit.copy(
                         title = title,
@@ -80,8 +80,8 @@ class HabitEditViewModel : ViewModel() {
                     habitRepository.addHabit(newHabit)
                 }
                 
-                _saveSuccess.value = result
-                if (!result) {
+                _saveSuccess.value = habitId != null
+                if (habitId == null) {
                     _error.value = "Failed to save habit"
                 }
             } catch (e: Exception) {

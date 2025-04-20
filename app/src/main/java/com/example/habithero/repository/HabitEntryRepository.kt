@@ -46,7 +46,7 @@ class HabitEntryRepository {
             return emptyList()
         }
     }
-    
+
     /**
      * Get habit entries within a specific date range
      * 
@@ -68,6 +68,35 @@ class HabitEntryRepository {
         } catch (e: Exception) {
             Log.e("HabitEntryRepository", "Error getting entries in range", e)
             return emptyList()
+        }
+    }
+
+    /**
+     * Delete all entries for a specific habit
+     * 
+     * @param habitId The ID of the habit to delete entries for
+     * @return True if deletion was successful, false otherwise
+     */
+    suspend fun deleteEntriesForHabit(habitId: String): Boolean {
+        return try {
+            // Get all entries for the habit
+            val entries = entriesCollection
+                .whereEqualTo("habitId", habitId)
+                .get()
+                .await()
+                
+            // Delete each entry
+            val batch = db.batch()
+            for (document in entries.documents) {
+                batch.delete(document.reference)
+            }
+            
+            // Commit the batch deletion
+            batch.commit().await()
+            true
+        } catch (e: Exception) {
+            Log.e("HabitEntryRepository", "Error deleting entries for habit", e)
+            false
         }
     }
 

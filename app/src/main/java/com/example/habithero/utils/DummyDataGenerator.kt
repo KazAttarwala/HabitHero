@@ -1,5 +1,6 @@
 package com.example.habithero.utils
 
+import android.util.Log
 import com.example.habithero.model.Habit
 import com.example.habithero.model.HabitEntry
 import com.example.habithero.repository.HabitEntryRepository
@@ -25,26 +26,34 @@ class DummyDataGenerator {
         val userId = habitRepository.getCurrentUserId() ?: return@withContext false
         
         // Create sample habits
-        val habits = listOf(
+        val habitsToCreate = listOf(
             createHabit(userId, "Morning Meditation", "Start the day with 10 minutes of meditation", 1, Random.nextInt(0, 10)),
             createHabit(userId, "Drink Water", "Drink 8 glasses of water daily", 8, Random.nextInt(0, 15)),
             createHabit(userId, "Exercise", "30 minutes of physical activity", 1, Random.nextInt(0, 20)),
             createHabit(userId, "Read", "Read for at least 30 minutes", 1, Random.nextInt(0, 12))
         )
         
-        // Add habits to Firestore
-        val habitIds = mutableListOf<String>()
-        for (habit in habits) {
-            val success = habitRepository.addHabit(habit)
-            if (success) habitIds.add(habit.id)
+        // Add habits to Firestore and create entries for each
+        val createdHabits = mutableListOf<Habit>()
+        
+        for (habitTemplate in habitsToCreate) {
+            // Add the habit and get its ID
+            val habitId = habitRepository.addHabit(habitTemplate)
+            
+            // If habitId is not null, get the created habit and generate entries
+            if (habitId != null) {
+                // Get the created habit using its ID
+                val createdHabit = habitRepository.getHabitById(habitId)
+                
+                // If the habit was found, generate entries
+                if (createdHabit != null) {
+                    createdHabits.add(createdHabit)
+                    generateWeeklyEntries(createdHabit)
+                }
+            }
         }
         
-        // Generate entries for each habit
-        for (habitId in habitIds) {
-            generateWeeklyEntries(habitId)
-        }
-        
-        return@withContext habitIds.isNotEmpty()
+        return@withContext createdHabits.isNotEmpty()
     }
     
     /**
@@ -55,7 +64,7 @@ class DummyDataGenerator {
         val userId = habitRepository.getCurrentUserId() ?: return@withContext false
         
         // Create habits with specific patterns
-        val habits = listOf(
+        val habitsToCreate = listOf(
             // Perfect streak - 100% completion
             createHabit(userId, "Perfect Streak", "A perfect habit with all days completed", 1, 14),
             
@@ -72,25 +81,35 @@ class DummyDataGenerator {
             createHabit(userId, "Broken Streak", "Previously good streak now broken", 1, 0)
         )
         
-        // Add habits to Firestore
-        val habitIds = mutableListOf<String>()
-        for (habit in habits) {
-            val success = habitRepository.addHabit(habit)
-            if (success) habitIds.add(habit.id)
-        }
+        // Add habits to Firestore and generate their entries
+        val createdHabits = mutableListOf<Habit>()
         
-        // Generate specific pattern entries
-        for (i in 0 until habitIds.size) {
-            when (i) {
-                0 -> generatePerfectStreakEntries(habitIds[i])  // Perfect streak
-                1 -> generateGoodStreakEntries(habitIds[i])     // Good streak
-                2 -> generateStrugglingHabitEntries(habitIds[i]) // Struggling habit
-                3 -> generateNewHabitEntries(habitIds[i])       // New habit
-                4 -> generateBrokenStreakEntries(habitIds[i])   // Broken streak
+        for ((index, habitTemplate) in habitsToCreate.withIndex()) {
+            // Add the habit and get its ID
+            val habitId = habitRepository.addHabit(habitTemplate)
+            
+            // If habitId is not null, get the created habit and generate entries
+            if (habitId != null) {
+                // Get the created habit using its ID
+                val createdHabit = habitRepository.getHabitById(habitId)
+                
+                // If the habit was found, generate entries
+                if (createdHabit != null) {
+                    createdHabits.add(createdHabit)
+                    
+                    // Generate specific patterns based on the index
+                    when (index) {
+                        0 -> generatePerfectStreakEntries(createdHabit)  // Perfect streak
+                        1 -> generateGoodStreakEntries(createdHabit)     // Good streak
+                        2 -> generateStrugglingHabitEntries(createdHabit) // Struggling habit
+                        3 -> generateNewHabitEntries(createdHabit)       // New habit
+                        4 -> generateBrokenStreakEntries(createdHabit)   // Broken streak
+                    }
+                }
             }
         }
         
-        return@withContext habitIds.isNotEmpty()
+        return@withContext createdHabits.isNotEmpty()
     }
     
     /**
@@ -103,7 +122,6 @@ class DummyDataGenerator {
         frequency: Int,
         streak: Int
     ): Habit {
-        val habitId = UUID.randomUUID().toString()
         val calendar = Calendar.getInstance()
         
         // Set last completed date to yesterday if streak > 0
@@ -115,7 +133,7 @@ class DummyDataGenerator {
         }
         
         return Habit(
-            id = habitId,
+            id = "", // ID will be set by HabitRepository.addHabit
             userId = userId,
             title = title,
             description = description,
@@ -130,11 +148,10 @@ class DummyDataGenerator {
     
     /**
      * Generates random HabitEntry records for the past week
-     * for the given habitId
+     * for the given habit
      */
-    private suspend fun generateWeeklyEntries(habitId: String) {
+    private suspend fun generateWeeklyEntries(habit: Habit) {
         val calendar = Calendar.getInstance()
-        val habit = habitRepository.getHabitsForCurrentUser().find { it.id == habitId } ?: return
         
         // Generate entries for the past 7 days
         for (dayOffset in 7 downTo 1) {
@@ -153,12 +170,12 @@ class DummyDataGenerator {
                 
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
-                    habitId = habitId,
+                    habitId = habit.id,
                     date = calendar.timeInMillis,
                     progress = progress,
                     completed = completed
                 )
-                
+
                 habitEntryRepository.addHabitEntry(entry)
             }
             
@@ -166,12 +183,11 @@ class DummyDataGenerator {
             calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
     }
-    
+
     // Helper methods for specific patterns
     
-    private suspend fun generatePerfectStreakEntries(habitId: String) {
+    private suspend fun generatePerfectStreakEntries(habit: Habit) {
         val calendar = Calendar.getInstance()
-        val habit = habitRepository.getHabitsForCurrentUser().find { it.id == habitId } ?: return
         
         // Generate entries for the past 7 days - all completed
         for (dayOffset in 7 downTo 1) {
@@ -179,7 +195,7 @@ class DummyDataGenerator {
             
             val entry = HabitEntry(
                 id = UUID.randomUUID().toString(),
-                habitId = habitId,
+                habitId = habit.id,
                 date = calendar.timeInMillis,
                 progress = habit.frequency + 1, // Always exceeding target
                 completed = true
@@ -192,9 +208,8 @@ class DummyDataGenerator {
         }
     }
     
-    private suspend fun generateGoodStreakEntries(habitId: String) {
+    private suspend fun generateGoodStreakEntries(habit: Habit) {
         val calendar = Calendar.getInstance()
-        val habit = habitRepository.getHabitsForCurrentUser().find { it.id == habitId } ?: return
         
         // Generate entries for the past 7 days - 5/7 days completed fully
         for (dayOffset in 7 downTo 1) {
@@ -204,7 +219,7 @@ class DummyDataGenerator {
             if (dayOffset != 3 && dayOffset != 6) {
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
-                    habitId = habitId,
+                    habitId = habit.id,
                     date = calendar.timeInMillis,
                     progress = habit.frequency,
                     completed = true
@@ -215,7 +230,7 @@ class DummyDataGenerator {
                 // For missed days, still log partial progress
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
-                    habitId = habitId,
+                    habitId = habit.id,
                     date = calendar.timeInMillis,
                     progress = habit.frequency / 2, // Half done
                     completed = false
@@ -229,9 +244,8 @@ class DummyDataGenerator {
         }
     }
     
-    private suspend fun generateStrugglingHabitEntries(habitId: String) {
+    private suspend fun generateStrugglingHabitEntries(habit: Habit) {
         val calendar = Calendar.getInstance()
-        val habit = habitRepository.getHabitsForCurrentUser().find { it.id == habitId } ?: return
         
         // Generate entries for the past 7 days - 3/7 days completed
         for (dayOffset in 7 downTo 1) {
@@ -241,7 +255,7 @@ class DummyDataGenerator {
             if (dayOffset == 1 || dayOffset == 4 || dayOffset == 7) {
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
-                    habitId = habitId,
+                    habitId = habit.id,
                     date = calendar.timeInMillis,
                     progress = habit.frequency,
                     completed = true
@@ -254,7 +268,7 @@ class DummyDataGenerator {
                 
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
-                    habitId = habitId,
+                    habitId = habit.id,
                     date = calendar.timeInMillis,
                     progress = progress,
                     completed = false
@@ -268,9 +282,8 @@ class DummyDataGenerator {
         }
     }
     
-    private suspend fun generateNewHabitEntries(habitId: String) {
+    private suspend fun generateNewHabitEntries(habit: Habit) {
         val calendar = Calendar.getInstance()
-        val habit = habitRepository.getHabitsForCurrentUser().find { it.id == habitId } ?: return
         
         // Only add entries for the last 2 days
         for (dayOffset in 2 downTo 1) {
@@ -278,7 +291,7 @@ class DummyDataGenerator {
             
             val entry = HabitEntry(
                 id = UUID.randomUUID().toString(),
-                habitId = habitId,
+                habitId = habit.id,
                 date = calendar.timeInMillis,
                 progress = habit.frequency,
                 completed = true
@@ -291,9 +304,8 @@ class DummyDataGenerator {
         }
     }
     
-    private suspend fun generateBrokenStreakEntries(habitId: String) {
+    private suspend fun generateBrokenStreakEntries(habit: Habit) {
         val calendar = Calendar.getInstance()
-        val habit = habitRepository.getHabitsForCurrentUser().find { it.id == habitId } ?: return
         
         // Generate entries for the past 7 days
         for (dayOffset in 7 downTo 1) {
@@ -303,7 +315,7 @@ class DummyDataGenerator {
             if (dayOffset >= 4) {
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
-                    habitId = habitId,
+                    habitId = habit.id,
                     date = calendar.timeInMillis,
                     progress = habit.frequency,
                     completed = true
@@ -314,7 +326,7 @@ class DummyDataGenerator {
                 // Partial on day 3
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
-                    habitId = habitId,
+                    habitId = habit.id,
                     date = calendar.timeInMillis,
                     progress = habit.frequency / 2,
                     completed = false
@@ -330,15 +342,30 @@ class DummyDataGenerator {
     }
     
     /**
-     * Clears all generated test data
+     * Clears all generated test data (both habits and their entries)
      */
     suspend fun clearDummyData() = withContext(Dispatchers.IO) {
+        // Get all habits for the current user
         val habits = habitRepository.getHabitsForCurrentUser()
+        val habitIds = habits.map { it.id }
         
-        for (habit in habits) {
-            habitRepository.deleteHabit(habit.id)
+        // Delete all entries for each habit
+        try {
+            for (habitId in habitIds) {
+                // Delete entries first
+                val success = habitEntryRepository.deleteEntriesForHabit(habitId)
+                if (!success) {
+                    Log.e("DummyDataGenerator", "Failed to delete entries for habit $habitId")
+                }
+                
+                // Then delete the habit
+                habitRepository.deleteHabit(habitId)
+            }
+        } catch (e: Exception) {
+            Log.e("DummyDataGenerator", "Error clearing dummy data", e)
+            return@withContext false
         }
         
         return@withContext true
     }
-} 
+}
