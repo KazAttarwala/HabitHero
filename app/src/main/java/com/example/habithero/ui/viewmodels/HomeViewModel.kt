@@ -10,6 +10,7 @@ import com.example.habithero.repository.HabitEntryRepository
 import com.example.habithero.repository.HabitRepository
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import com.google.firebase.Timestamp
 
 class HomeViewModel : ViewModel() {
     private val habitRepository = HabitRepository()
@@ -20,7 +21,7 @@ class HomeViewModel : ViewModel() {
     
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
-    
+
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
     
@@ -64,20 +65,15 @@ class HomeViewModel : ViewModel() {
     fun incrementHabitProgress(habit: Habit) {
         viewModelScope.launch {
             try {
-                // If progress is already at or over frequency, do nothing
                 if (habit.progress >= habit.frequency) return@launch
                 
-                // Increment progress
                 val newProgress = habit.progress + 1
-                // Update completed status if needed
                 val isCompleted = newProgress >= habit.frequency
                 
-                // Current time 
-                val currentTimeMillis = System.currentTimeMillis()
+                val currentTime = Timestamp.now()
                 
-                // Calculate streak if this increment completes the habit
                 val (newStreak, lastCompletedDate) = if (isCompleted) {
-                    calculateNewStreak(habit, currentTimeMillis)
+                    calculateNewStreak(habit, currentTime)
                 } else {
                     Pair(habit.streak, habit.lastCompletedDate)
                 }
@@ -91,15 +87,14 @@ class HomeViewModel : ViewModel() {
                 
                 val success = habitRepository.updateHabit(updatedHabit)
                 if (success) {
-                    // Record this progress in habit entries
                     val habitEntry = HabitEntry(
                         habitId = habit.id,
-                        date = currentTimeMillis,
+                        date = currentTime,
                         progress = newProgress,
                         completed = isCompleted
                     )
                     habitEntryRepository.addHabitEntry(habitEntry)
-                    loadHabits() // Refresh the list
+                    loadHabits()
                 } else {
                     _error.value = "Failed to update habit"
                 }
@@ -109,42 +104,42 @@ class HomeViewModel : ViewModel() {
         }
     }
     
-    private fun calculateNewStreak(habit: Habit, currentTimeMillis: Long): Pair<Int, Long> {
-        // Get day start for today
+    private fun calculateNewStreak(habit: Habit, currentTime: Timestamp): Pair<Int, Timestamp> {
         val calendar = Calendar.getInstance()
-        calendar.timeInMillis = currentTimeMillis
+        
+        // Get day start for today
+        calendar.time = currentTime.toDate()
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
-        val todayStartMillis = calendar.timeInMillis
+        val todayStart = Timestamp(calendar.time)
         
         // Get day start for last completed
-        calendar.timeInMillis = habit.lastCompletedDate
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-        val lastCompletedDayStartMillis = calendar.timeInMillis
+        val lastCompletedDate = habit.lastCompletedDate
+        val lastCompletedDayStart = if (lastCompletedDate != null) {
+            calendar.time = lastCompletedDate.toDate()
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            Timestamp(calendar.time)
+        } else null
         
         // Get day start for yesterday
-        calendar.timeInMillis = todayStartMillis
+        calendar.time = todayStart.toDate()
         calendar.add(Calendar.DAY_OF_YEAR, -1)
-        val yesterdayStartMillis = calendar.timeInMillis
+        val yesterdayStart = Timestamp(calendar.time)
         
         // Calculate the new streak
         val newStreak = when {
-            // First completion ever
-            habit.lastCompletedDate == 0L -> 1
-            // If completed yesterday, streak continues
-            lastCompletedDayStartMillis == yesterdayStartMillis -> habit.streak + 1
-            // If already completed today, keep current streak
-            lastCompletedDayStartMillis == todayStartMillis -> habit.streak
-            // Otherwise reset streak
+            lastCompletedDate == null -> 1
+            lastCompletedDayStart == yesterdayStart -> habit.streak + 1
+            lastCompletedDayStart == todayStart -> habit.streak
             else -> 1
         }
         
-        return Pair(newStreak, currentTimeMillis)
+        return Pair(newStreak, currentTime)
     }
     
     fun resetHabitProgress(habit: Habit) {

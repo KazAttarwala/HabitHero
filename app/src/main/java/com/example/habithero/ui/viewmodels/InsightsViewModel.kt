@@ -166,7 +166,7 @@ class InsightsViewModel : ViewModel() {
         
         // Fill in actual progress data from entries
         for (entry in entries) {
-            val date = Date(entry.date)
+            val date = entry.date.toDate()
             val dayLabel = dayFormat.format(date)
             // If multiple entries exist for the same day, use the highest progress
             val currentProgress = result[dayLabel] ?: 0

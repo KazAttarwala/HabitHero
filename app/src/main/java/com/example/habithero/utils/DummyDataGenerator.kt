@@ -5,6 +5,7 @@ import com.example.habithero.model.Habit
 import com.example.habithero.model.HabitEntry
 import com.example.habithero.repository.HabitEntryRepository
 import com.example.habithero.repository.HabitRepository
+import com.google.firebase.Timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Calendar
@@ -125,12 +126,18 @@ class DummyDataGenerator {
         val calendar = Calendar.getInstance()
         
         // Set last completed date to yesterday if streak > 0
-        if (streak > 0) {
+        val lastCompletedDate = if (streak > 0) {
             calendar.add(Calendar.DAY_OF_YEAR, -1)
+            Timestamp(calendar.time)
         } else {
-            // Otherwise, set to a few days ago to show broken streak
+            // For broken streak, set to a few days ago
             calendar.add(Calendar.DAY_OF_YEAR, -3)
+            Timestamp(calendar.time)
         }
+        
+        // Set created date to 30 days ago
+        calendar.add(Calendar.DAY_OF_YEAR, -30)
+        val createdAt = Timestamp(calendar.time)
         
         return Habit(
             id = "", // ID will be set by HabitRepository.addHabit
@@ -141,8 +148,8 @@ class DummyDataGenerator {
             progress = if (streak > 0) frequency else Random.nextInt(0, frequency),
             completed = streak > 0,
             streak = streak,
-            lastCompletedDate = calendar.timeInMillis,
-            createdAt = System.currentTimeMillis() - (30 * 24 * 60 * 60 * 1000L) // Created 30 days ago
+            lastCompletedDate = lastCompletedDate,
+            createdAt = createdAt
         )
     }
     
@@ -160,7 +167,6 @@ class DummyDataGenerator {
             // Decide if this day has an entry (80% chance)
             if (Random.nextFloat() < 0.8f) {
                 val progress = when {
-                    // For higher streaks, make more days successful
                     habit.streak > 10 -> Random.nextInt(habit.frequency, habit.frequency + 2)
                     habit.streak > 5 -> Random.nextInt(habit.frequency - 1, habit.frequency + 2)
                     else -> Random.nextInt(0, habit.frequency + 1)
@@ -171,16 +177,13 @@ class DummyDataGenerator {
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
                     habitId = habit.id,
-                    date = calendar.timeInMillis,
+                    date = Timestamp(calendar.time),
                     progress = progress,
                     completed = completed
                 )
 
                 habitEntryRepository.addHabitEntry(entry)
             }
-            
-            // Reset calendar
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
     }
 
@@ -196,22 +199,19 @@ class DummyDataGenerator {
             val entry = HabitEntry(
                 id = UUID.randomUUID().toString(),
                 habitId = habit.id,
-                date = calendar.timeInMillis,
-                progress = habit.frequency + 1, // Always exceeding target
+                date = Timestamp(calendar.time),
+                progress = habit.frequency + 1,
                 completed = true
             )
             
             habitEntryRepository.addHabitEntry(entry)
-            
-            // Reset calendar
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
     }
     
     private suspend fun generateGoodStreakEntries(habit: Habit) {
         val calendar = Calendar.getInstance()
         
-        // Generate entries for the past 7 days - 5/7 days completed fully
+        // Generate entries for the past 7 days - 5/7 days completed
         for (dayOffset in 7 downTo 1) {
             calendar.add(Calendar.DAY_OF_YEAR, -1)
             
@@ -220,27 +220,23 @@ class DummyDataGenerator {
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
                     habitId = habit.id,
-                    date = calendar.timeInMillis,
+                    date = Timestamp(calendar.time),
                     progress = habit.frequency,
                     completed = true
                 )
                 
                 habitEntryRepository.addHabitEntry(entry)
             } else {
-                // For missed days, still log partial progress
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
                     habitId = habit.id,
-                    date = calendar.timeInMillis,
-                    progress = habit.frequency / 2, // Half done
+                    date = Timestamp(calendar.time),
+                    progress = habit.frequency / 2,
                     completed = false
                 )
                 
                 habitEntryRepository.addHabitEntry(entry)
             }
-            
-            // Reset calendar
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
     }
     
@@ -256,29 +252,23 @@ class DummyDataGenerator {
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
                     habitId = habit.id,
-                    date = calendar.timeInMillis,
+                    date = Timestamp(calendar.time),
                     progress = habit.frequency,
                     completed = true
                 )
                 
                 habitEntryRepository.addHabitEntry(entry)
             } else {
-                // For missed days, small or no progress
-                val progress = if (Random.nextBoolean()) 1 else 0
-                
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
                     habitId = habit.id,
-                    date = calendar.timeInMillis,
-                    progress = progress,
+                    date = Timestamp(calendar.time),
+                    progress = if (Random.nextBoolean()) 1 else 0,
                     completed = false
                 )
                 
                 habitEntryRepository.addHabitEntry(entry)
             }
-            
-            // Reset calendar
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
     }
     
@@ -292,15 +282,12 @@ class DummyDataGenerator {
             val entry = HabitEntry(
                 id = UUID.randomUUID().toString(),
                 habitId = habit.id,
-                date = calendar.timeInMillis,
+                date = Timestamp(calendar.time),
                 progress = habit.frequency,
                 completed = true
             )
             
             habitEntryRepository.addHabitEntry(entry)
-            
-            // Reset calendar
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
     }
     
@@ -316,18 +303,17 @@ class DummyDataGenerator {
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
                     habitId = habit.id,
-                    date = calendar.timeInMillis,
+                    date = Timestamp(calendar.time),
                     progress = habit.frequency,
                     completed = true
                 )
                 
                 habitEntryRepository.addHabitEntry(entry)
             } else if (dayOffset == 3) {
-                // Partial on day 3
                 val entry = HabitEntry(
                     id = UUID.randomUUID().toString(),
                     habitId = habit.id,
-                    date = calendar.timeInMillis,
+                    date = Timestamp(calendar.time),
                     progress = habit.frequency / 2,
                     completed = false
                 )
@@ -335,9 +321,6 @@ class DummyDataGenerator {
                 habitEntryRepository.addHabitEntry(entry)
             }
             // No entries for days 2-1
-            
-            // Reset calendar
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
     }
     

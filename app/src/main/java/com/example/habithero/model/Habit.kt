@@ -1,7 +1,7 @@
 package com.example.habithero.model
 
+import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 data class Habit(
@@ -13,8 +13,16 @@ data class Habit(
     val progress: Int = 0,   // Current progress (times completed today)
     val completed: Boolean = false,
     val streak: Int = 0,     // Current streak (days in a row completed)
-    val lastCompletedDate: Long = 0, // Timestamp of last completion
-    val lastCompletedFormattedDate: String = if (lastCompletedDate > 0) SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault()).format(Date(lastCompletedDate)) else "",
-    val createdAt: Long = System.currentTimeMillis(),
-    val createdAtFormattedDate: String = SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault()).format(Date(createdAt))
-) 
+    val lastCompletedDate: Timestamp? = null,
+    val createdAt: Timestamp = Timestamp.now()
+) {
+    fun getFormattedLastCompletedDate(): String {
+        return lastCompletedDate?.let { 
+            SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault()).format(it.toDate())
+        } ?: ""
+    }
+
+    fun getFormattedCreatedDate(): String {
+        return SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault()).format(createdAt.toDate())
+    }
+} 

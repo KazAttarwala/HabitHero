@@ -2,6 +2,7 @@ package com.example.habithero.repository
 
 import android.util.Log
 import com.example.habithero.model.Habit
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -26,8 +27,6 @@ class HabitRepository {
                 .await()
                 .toObjects(Habit::class.java)
         } catch (e: Exception) {
-            // log error
-            e.printStackTrace()
             Log.e("HabitRepository", "Error getting habits for current user", e)
             emptyList()
         }
@@ -43,7 +42,10 @@ class HabitRepository {
         return try {
             val userId = getCurrentUserId() ?: return null
             val habitId = habitsCollection.document().id
-            val newHabit = habit.copy(id = habitId, userId = userId)
+            val newHabit = habit.copy(
+                id = habitId, 
+                userId = userId,
+            )
             habitsCollection.document(habitId).set(newHabit).await()
             habitId
         } catch (e: Exception) {
@@ -77,6 +79,7 @@ class HabitRepository {
             habitsCollection.document(habit.id).set(habit).await()
             true
         } catch (e: Exception) {
+            Log.e("HabitRepository", "Error updating habit", e)
             false
         }
     }
@@ -86,6 +89,7 @@ class HabitRepository {
             habitsCollection.document(habitId).delete().await()
             true
         } catch (e: Exception) {
+            Log.e("HabitRepository", "Error deleting habit", e)
             false
         }
     }

@@ -2,6 +2,7 @@ package com.example.habithero.repository
 
 import android.util.Log
 import com.example.habithero.model.HabitEntry
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -29,10 +30,9 @@ class HabitEntryRepository {
 
     suspend fun getWeeklyHabitEntries(habitId: String): List<HabitEntry> {
         try {
-            // Calculate one week ago from current time
             val calendar = Calendar.getInstance()
             calendar.add(Calendar.DAY_OF_YEAR, -7)
-            val oneWeekAgo = calendar.timeInMillis
+            val oneWeekAgo = Timestamp(calendar.time)
 
             return entriesCollection
                 .whereEqualTo("habitId", habitId)
@@ -59,8 +59,10 @@ class HabitEntryRepository {
         try {
             return entriesCollection
                 .whereEqualTo("habitId", habitId)
-                .whereGreaterThanOrEqualTo("date", startDate)
-                .whereLessThanOrEqualTo("date", endDate)
+                // Convert milliseconds to seconds by dividing by 1000, since Timestamp expects seconds
+                // The second parameter (0) represents nanoseconds, which we don't need for this granularity
+                .whereGreaterThanOrEqualTo("date", Timestamp(startDate / 1000, 0))
+                .whereLessThanOrEqualTo("date", Timestamp(endDate / 1000, 0))
                 .orderBy("date", Query.Direction.ASCENDING)
                 .get()
                 .await()
@@ -108,10 +110,9 @@ class HabitEntryRepository {
         if (habitIds.isEmpty()) return emptyList()
         
         try {
-            // Get entries for all user's habits from the last 30 days
             val calendar = Calendar.getInstance()
             calendar.add(Calendar.DAY_OF_YEAR, -30)
-            val thirtyDaysAgo = calendar.timeInMillis
+            val thirtyDaysAgo = Timestamp(calendar.time)
             
             return entriesCollection
                 .whereIn("habitId", habitIds)
@@ -125,4 +126,4 @@ class HabitEntryRepository {
             return emptyList()
         }
     }
-} 
+}
