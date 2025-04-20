@@ -59,10 +59,9 @@ class HabitEntryRepository {
         try {
             return entriesCollection
                 .whereEqualTo("habitId", habitId)
-                // Convert milliseconds to seconds by dividing by 1000, since Timestamp expects seconds
-                // The second parameter (0) represents nanoseconds, which we don't need for this granularity
-                .whereGreaterThanOrEqualTo("date", Timestamp(startDate / 1000, 0))
-                .whereLessThanOrEqualTo("date", Timestamp(endDate / 1000, 0))
+                // Create timestamps from Date objects to ensure correct conversion
+                .whereGreaterThanOrEqualTo("date", Timestamp(Date(startDate)))
+                .whereLessThanOrEqualTo("date", Timestamp(Date(endDate)))
                 .orderBy("date", Query.Direction.ASCENDING)
                 .get()
                 .await()

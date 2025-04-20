@@ -13,6 +13,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 class InsightsViewModel : ViewModel() {
     private val habitRepository = HabitRepository()
@@ -116,7 +117,7 @@ class InsightsViewModel : ViewModel() {
     
     private suspend fun loadEntriesForWeek(habitId: String, weekOffset: Int): List<HabitEntry> {
         // Calculate the date range for the selected week
-        val calendar = Calendar.getInstance()
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
         
         // If weekOffset is negative, move back that many weeks
         if (weekOffset < 0) {
@@ -125,12 +126,20 @@ class InsightsViewModel : ViewModel() {
         
         // Find the start of the week (Sunday in most cases)
         val currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-        // Move the calendar to the start of the week
+        // Move the calendar to the start of the week and set to midnight UTC
         calendar.add(Calendar.DAY_OF_YEAR, -(currentDayOfWeek - 1))
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
         val weekStart = calendar.timeInMillis
         
-        // Move to the end of the week
+        // Move to the end of the week and set to last millisecond of the day
         calendar.add(Calendar.DAY_OF_YEAR, 6)
+        calendar.set(Calendar.HOUR_OF_DAY, 23)
+        calendar.set(Calendar.MINUTE, 59)
+        calendar.set(Calendar.SECOND, 59)
+        calendar.set(Calendar.MILLISECOND, 999)
         val weekEnd = calendar.timeInMillis
         
         // Get entries in the date range
