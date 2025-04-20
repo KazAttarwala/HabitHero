@@ -89,8 +89,8 @@ class HomeViewModel : ViewModel() {
                     lastCompletedDate = lastCompletedDate
                 )
                 
-                val habitId = habitRepository.updateHabit(updatedHabit)
-                if (habitId != null) {
+                val success = habitRepository.updateHabit(updatedHabit)
+                if (success) {
                     // Record this progress in habit entries
                     val habitEntry = HabitEntry(
                         habitId = habit.id,
@@ -155,8 +155,8 @@ class HomeViewModel : ViewModel() {
                     completed = false
                 )
                 
-                val habitId = habitRepository.updateHabit(updatedHabit)
-                if (habitId != null) {
+                val success = habitRepository.updateHabit(updatedHabit)
+                if (success) {
                     loadHabits() // Refresh the list
                 } else {
                     _error.value = "Failed to reset habit progress"
