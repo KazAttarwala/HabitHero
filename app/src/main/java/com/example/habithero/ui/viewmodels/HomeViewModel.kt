@@ -27,7 +27,7 @@ class HomeViewModel : ViewModel() {
     init {
         loadHabits()
     }
-    
+
     fun loadHabits() {
         viewModelScope.launch {
             try {
@@ -45,7 +45,7 @@ class HomeViewModel : ViewModel() {
 
     fun addHabit(title: String, description: String) {
         if (title.isBlank()) return
-        
+
         viewModelScope.launch {
             try {
                 val newHabit = Habit(title = title, description = description)
@@ -57,49 +57,6 @@ class HomeViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 _error.value = "Failed to add habit: ${e.message}"
-            }
-        }
-    }
-    
-    fun toggleHabitCompletion(habit: Habit) {
-        viewModelScope.launch {
-            try {
-                val newCompleted = !habit.completed
-                
-                // If toggling to completed, update streak and lastCompletedDate
-                val currentTimeMillis = System.currentTimeMillis()
-                
-                // Update streak only if we're marking as completed
-                val (newStreak, lastCompletedDate) = if (newCompleted) {
-                    calculateNewStreak(habit, currentTimeMillis)
-                } else {
-                    Pair(habit.streak, habit.lastCompletedDate)
-                }
-                
-                val updatedHabit = habit.copy(
-                    completed = newCompleted,
-                    streak = newStreak,
-                    lastCompletedDate = lastCompletedDate
-                )
-                
-                val habitId = habitRepository.updateHabit(updatedHabit)
-                if (habitId != null) {
-                    // Record this in habit entries if we're marking as completed
-                    if (newCompleted) {
-                        val habitEntry = HabitEntry(
-                            habitId = habit.id,
-                            date = currentTimeMillis,
-                            progress = habit.progress,
-                            completed = true
-                        )
-                        habitEntryRepository.addHabitEntry(habitEntry)
-                    }
-                    loadHabits() // Refresh the list
-                } else {
-                    _error.value = "Failed to update habit"
-                }
-            } catch (e: Exception) {
-                _error.value = "Failed to update habit: ${e.message}"
             }
         }
     }
