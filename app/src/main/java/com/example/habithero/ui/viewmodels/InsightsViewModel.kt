@@ -4,7 +4,9 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.habithero.api.AnthropicService
 import com.example.habithero.model.Habit
+import com.example.habithero.model.HabitAnalysis
 import com.example.habithero.model.HabitEntry
 import com.example.habithero.repository.HabitEntryRepository
 import com.example.habithero.repository.HabitRepository
@@ -18,6 +20,7 @@ import java.util.TimeZone
 class InsightsViewModel : ViewModel() {
     private val habitRepository = HabitRepository()
     private val habitEntryRepository = HabitEntryRepository()
+    private val anthropicService = AnthropicService()
     
     private val _habits = MutableLiveData<List<Habit>>()
     val habits: LiveData<List<Habit>> = _habits
@@ -40,6 +43,13 @@ class InsightsViewModel : ViewModel() {
     
     private val _dateRange = MutableLiveData<String>()
     val dateRange: LiveData<String> = _dateRange
+    
+    // Habit analysis properties
+    private val _habitAnalysis = MutableLiveData<HabitAnalysis>()
+    val habitAnalysis: LiveData<HabitAnalysis> = _habitAnalysis
+    
+    private val _isAnalysisLoading = MutableLiveData<Boolean>(false)
+    val isAnalysisLoading: LiveData<Boolean> = _isAnalysisLoading
     
     init {
         loadHabits()
@@ -222,5 +232,29 @@ class InsightsViewModel : ViewModel() {
         
         val completedDays = weeklyData.count { it.value >= selectedHabit.frequency }
         return (completedDays * 100 / weeklyData.size)
+    }
+    
+    fun requestHabitAnalysis() {
+        val selectedHabit = _selectedHabit.value ?: return
+        val weeklyData = _weeklyData.value ?: return
+        
+        viewModelScope.launch {
+            try {
+                _isAnalysisLoading.value = true
+                val completionRate = getCompletionRate()
+                
+                val analysis = anthropicService.analyzeHabitData(
+                    selectedHabit,
+                    weeklyData,
+                    completionRate
+                )
+                
+                _habitAnalysis.value = analysis
+            } catch (e: Exception) {
+                _error.value = "Failed to get habit analysis: ${e.message}"
+            } finally {
+                _isAnalysisLoading.value = false
+            }
+        }
     }
 } 

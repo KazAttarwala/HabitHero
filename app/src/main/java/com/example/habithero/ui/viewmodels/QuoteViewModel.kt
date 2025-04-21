@@ -6,7 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.habithero.api.AnthropicService
-import com.example.habithero.api.QuoteResponse
+import com.example.habithero.model.QuoteResponse
 import com.example.habithero.config.ApiConfig
 import kotlinx.coroutines.launch
 

@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.example.habithero.databinding.FragmentInsightsBinding
 import com.example.habithero.model.Habit
+import com.example.habithero.model.HabitAnalysis
 import com.example.habithero.ui.viewmodels.InsightsViewModel
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
@@ -47,6 +48,9 @@ class InsightsFragment : Fragment() {
         
         // Set up week navigation
         setupWeekNavigation()
+        
+        // Set up AI analysis
+        setupAnalysisButton()
         
         // Set up observers
         observeViewModel()
@@ -137,6 +141,16 @@ class InsightsFragment : Fragment() {
         binding.resetToCurrentWeekButton.isEnabled = weekOffset < 0
     }
     
+    private fun setupAnalysisButton() {
+        binding.analyzeHabitButton.setOnClickListener {
+            if (viewModel.selectedHabit.value != null) {
+                viewModel.requestHabitAnalysis()
+            } else {
+                Toast.makeText(requireContext(), "Please select a habit first", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
     private fun observeViewModel() {
         // Observe habits for spinner
         viewModel.habits.observe(viewLifecycleOwner) { habits ->
@@ -184,6 +198,17 @@ class InsightsFragment : Fragment() {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
             }
         }
+        
+        // Observe habit analysis
+        viewModel.habitAnalysis.observe(viewLifecycleOwner) { analysis ->
+            updateAnalysisUI(analysis)
+        }
+        
+        // Observe analysis loading state
+        viewModel.isAnalysisLoading.observe(viewLifecycleOwner) { isLoading ->
+            binding.analysisProgressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+            binding.analyzeHabitButton.isEnabled = !isLoading
+        }
     }
     
     private fun updateBarChart(weeklyData: Map<String, Int>) {
@@ -219,6 +244,19 @@ class InsightsFragment : Fragment() {
         
         // Refresh the chart
         barChart.invalidate()
+    }
+    
+    private fun updateAnalysisUI(analysis: HabitAnalysis) {
+        // Update summary
+        binding.summaryTextView.text = analysis.summary
+        
+        // Update recommendations
+        val recommendationsText = analysis.recommendations.joinToString("\n\n") { "• $it" }
+        binding.recommendationsTextView.text = recommendationsText
+        
+        // Update improvements
+        val improvementsText = analysis.suggestedImprovements.joinToString("\n\n") { "• $it" }
+        binding.improvementsTextView.text = improvementsText
     }
 
     override fun onDestroyView() {

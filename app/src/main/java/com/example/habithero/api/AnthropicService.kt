@@ -1,6 +1,10 @@
 package com.example.habithero.api
 
 import android.util.Log
+import com.example.habithero.config.ApiConfig
+import com.example.habithero.model.Habit
+import com.example.habithero.model.HabitAnalysis
+import com.example.habithero.model.QuoteResponse
 import com.squareup.moshi.Json
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -17,21 +21,17 @@ import retrofit2.http.Body
 import retrofit2.http.Header
 import retrofit2.http.POST
 import org.json.JSONObject
+import org.json.JSONArray
 import java.util.concurrent.TimeUnit
 
 interface AnthropicApi {
     @POST("v1/messages")
-    suspend fun getQuote(
+    suspend fun makeRequest(
         @Header("x-api-key") apiKey: String,
         @Header("anthropic-version") version: String = "2023-06-01",
         @Body requestBody: RequestBody
     ): Response<ResponseBody>
 }
-
-data class QuoteResponse(
-    val quote: String,
-    val author: String
-)
 
 class AnthropicService {
     private val TAG = "AnthropicService"
@@ -76,7 +76,7 @@ class AnthropicService {
         val requestBody = jsonBody.toRequestBody("application/json".toMediaType())
 
         Log.d(TAG, "Making API request to Anthropic")
-        val response = anthropicApi.getQuote(apiKey, "2023-06-01", requestBody)
+        val response = anthropicApi.makeRequest(apiKey, "2023-06-01", requestBody)
         
         if (response.isSuccessful) {
             Log.d(TAG, "API request successful: ${response.code()}")
@@ -115,6 +115,102 @@ class AnthropicService {
             Log.e(TAG, "API request failed: ${response.code()}")
             Log.e(TAG, "Error body: $errorBody")
             throw Exception("Failed to get quote: HTTP ${response.code()} - $errorBody")
+        }
+    }
+
+    suspend fun analyzeHabitData(
+        habit: Habit,
+        weeklyData: Map<String, Int>,
+        completionRate: Int
+    ): HabitAnalysis {
+        Log.d(TAG, "Analyzing habit data for: ${habit.title}")
+        
+        val jsonBody = """
+            {
+                "model": "claude-3-haiku-20240307",
+                "max_tokens": 1000,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "As a habit-building expert, analyze this habit data and provide insights:
+                        
+                        Habit: ${habit.title}
+                        Description: ${habit.description}
+                        Current streak: ${habit.streak} days
+                        Weekly progress data: ${weeklyData.entries.joinToString { "${it.key}: ${it.value}/${habit.frequency}" }}
+                        Overall completion rate: ${completionRate}%
+                        
+                        Please provide:
+                        1. A brief summary of progress (2-3 sentences)
+                        2. Three specific recommendations for improvement
+                        3. Two suggested adjustments if the user is struggling
+                        
+                        Format the response in JSON with keys: summary, recommendations, suggestedImprovements
+                        The recommendations and suggestedImprovements should be arrays of strings.
+                        Make all insights concise and actionable."
+                    }
+                ]
+            }
+        """.trimIndent()
+
+        val requestBody = jsonBody.toRequestBody("application/json".toMediaType())
+
+        Log.d(TAG, "Making API request to Anthropic for habit analysis")
+        val response = anthropicApi.makeRequest(ApiConfig.ANTHROPIC_API_KEY, "2023-06-01", requestBody)
+        
+        if (response.isSuccessful) {
+            Log.d(TAG, "API request successful: ${response.code()}")
+            val responseString = response.body()?.string() ?: ""
+            
+            try {
+                // Parse the response which is in Claude's content format
+                Log.d(TAG, "Parsing response: ${responseString.take(100)}...")
+                val jsonResponse = JSONObject(responseString)
+                val content = jsonResponse.getJSONArray("content")
+                
+                // Look for the text content that contains our JSON
+                for (i in 0 until content.length()) {
+                    val item = content.getJSONObject(i)
+                    if (item.getString("type") == "text") {
+                        val text = item.getString("text")
+                        
+                        // Parse the actual quote JSON from the text content
+                        Log.d(TAG, "Found text content: ${text.take(50)}...")
+                        val analysisJson = JSONObject(text)
+                        
+                        // Parse recommendations array
+                        val recommendationsArray = analysisJson.getJSONArray("recommendations")
+                        val recommendations = mutableListOf<String>()
+                        for (j in 0 until recommendationsArray.length()) {
+                            recommendations.add(recommendationsArray.getString(j))
+                        }
+                        
+                        // Parse suggestedImprovements array
+                        val improvementsArray = analysisJson.getJSONArray("suggestedImprovements")
+                        val improvements = mutableListOf<String>()
+                        for (j in 0 until improvementsArray.length()) {
+                            improvements.add(improvementsArray.getString(j))
+                        }
+                        
+                        return HabitAnalysis(
+                            summary = analysisJson.getString("summary"),
+                            recommendations = recommendations,
+                            suggestedImprovements = improvements
+                        )
+                    }
+                }
+                Log.e(TAG, "No text content found in response")
+                throw Exception("No text content found in response")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to parse response: ${e.message}", e)
+                Log.e(TAG, "Response content: $responseString")
+                throw Exception("Failed to parse analysis response: ${e.message}")
+            }
+        } else {
+            val errorBody = response.errorBody()?.string()
+            Log.e(TAG, "API request failed: ${response.code()}")
+            Log.e(TAG, "Error body: $errorBody")
+            throw Exception("Failed to get habit analysis: HTTP ${response.code()} - $errorBody")
         }
     }
 }
