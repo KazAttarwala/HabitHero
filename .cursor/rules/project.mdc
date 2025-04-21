@@ -1,6 +1,6 @@
 ---
 description: 
-globs: 
+globs:
 alwaysApply: true
 ---
 
@@ -9,7 +9,7 @@ alwaysApply: true
 - use firebase for storage and authentication
 - Use MVVM for separation of concerns
 - Store habit data in Firestore with a user-based collection
-- Keep UI minimal and consistent with Android Material guidelines
+- Keep UI minimal and consistent with Android Material Design guidelines
 - Make small incremental changes and test thoroughly
 - use anthropic api for llm api integration
 - use retrofit for api calls
