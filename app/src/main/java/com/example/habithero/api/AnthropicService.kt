@@ -95,12 +95,49 @@ class AnthropicService {
                         val text = item.getString("text")
                         
                         // Parse the actual quote JSON from the text content
-                        Log.d(TAG, "Found text content: ${text.take(50)}...")
-                        val quoteJson = JSONObject(text)
-                        return QuoteResponse(
-                            quote = quoteJson.getString("quote"),
-                            author = quoteJson.getString("author")
-                        )
+                        Log.d(TAG, "Found text content: $text")
+                        
+                        try {
+                            // First, try to parse directly as JSON
+                            val quoteJson = try {
+                                JSONObject(text)
+                            } catch (e: Exception) {
+                                // If direct parsing fails, try to extract JSON from markdown code blocks
+                                Log.d(TAG, "Direct JSON parsing failed, trying to extract from markdown")
+                                val jsonPattern = "```json\\s*(.+?)\\s*```"
+                                val alternatePattern = "```\\s*(.+?)\\s*```"
+                                
+                                val regex = Regex(jsonPattern, RegexOption.DOT_MATCHES_ALL)
+                                val match = regex.find(text)
+                                
+                                if (match != null) {
+                                    val jsonContent = match.groupValues[1].trim()
+                                    Log.d(TAG, "Extracted JSON from markdown: $jsonContent")
+                                    JSONObject(jsonContent)
+                                } else {
+                                    // Try alternate pattern without json specification
+                                    val altRegex = Regex(alternatePattern, RegexOption.DOT_MATCHES_ALL)
+                                    val altMatch = altRegex.find(text)
+                                    
+                                    if (altMatch != null) {
+                                        val jsonContent = altMatch.groupValues[1].trim()
+                                        Log.d(TAG, "Extracted JSON from alternate markdown: $jsonContent")
+                                        JSONObject(jsonContent)
+                                    } else {
+                                        throw Exception("Could not extract JSON from the response")
+                                    }
+                                }
+                            }
+                            
+                            return QuoteResponse(
+                                quote = quoteJson.getString("quote"),
+                                author = quoteJson.getString("author")
+                            )
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error parsing quote JSON: ${e.message}", e)
+                            Log.e(TAG, "Text content: $text")
+                            throw Exception("Error parsing quote JSON: ${e.message}")
+                        }
                     }
                 }
                 Log.e(TAG, "No text content found in response")
@@ -125,6 +162,15 @@ class AnthropicService {
     ): HabitAnalysis {
         Log.d(TAG, "Analyzing habit data for: ${habit.title}")
         
+        // Properly escape user input to avoid JSON formatting issues
+        val escapedTitle = habit.title.replace("\"", "\\\"").replace("\n", " ")
+        val escapedDescription = habit.description.replace("\"", "\\\"").replace("\n", " ")
+        
+        // Create a cleaner weekly data string
+        val weeklyDataStr = weeklyData.entries.joinToString(", ") { 
+            "${it.key}: ${it.value}/${habit.frequency}" 
+        }
+        
         val jsonBody = """
             {
                 "model": "claude-3-haiku-20240307",
@@ -132,27 +178,13 @@ class AnthropicService {
                 "messages": [
                     {
                         "role": "user",
-                        "content": "As a habit-building expert, analyze this habit data and provide insights:
-                        
-                        Habit: ${habit.title}
-                        Description: ${habit.description}
-                        Current streak: ${habit.streak} days
-                        Weekly progress data: ${weeklyData.entries.joinToString { "${it.key}: ${it.value}/${habit.frequency}" }}
-                        Overall completion rate: ${completionRate}%
-                        
-                        Please provide:
-                        1. A brief summary of progress (2-3 sentences)
-                        2. Three specific recommendations for improvement
-                        3. Two suggested adjustments if the user is struggling
-                        
-                        Format the response in JSON with keys: summary, recommendations, suggestedImprovements
-                        The recommendations and suggestedImprovements should be arrays of strings.
-                        Make all insights concise and actionable."
+                        "content": "As a habit-building expert, analyze this habit data and provide insights:\\n\\nHabit: $escapedTitle\\nDescription: $escapedDescription\\nCurrent streak: ${habit.streak} days\\nWeekly progress data: $weeklyDataStr\\nOverall completion rate: ${completionRate}%\\n\\nPlease provide:\\n1. A brief summary of progress (2-3 sentences)\\n2. Three specific recommendations for improvement\\n3. Two suggested adjustments if the user is struggling\\n\\nFormat the response in JSON with keys: summary, recommendations, suggestedImprovements\\nThe recommendations and suggestedImprovements should be arrays of strings.\\nMake all insights concise and actionable."
                     }
                 ]
             }
         """.trimIndent()
 
+        Log.d(TAG, "API request body: $jsonBody")
         val requestBody = jsonBody.toRequestBody("application/json".toMediaType())
 
         Log.d(TAG, "Making API request to Anthropic for habit analysis")
@@ -162,10 +194,19 @@ class AnthropicService {
             Log.d(TAG, "API request successful: ${response.code()}")
             val responseString = response.body()?.string() ?: ""
             
+            Log.d(TAG, "Full API response: $responseString")
+            
             try {
                 // Parse the response which is in Claude's content format
                 Log.d(TAG, "Parsing response: ${responseString.take(100)}...")
                 val jsonResponse = JSONObject(responseString)
+                
+                // Check for content field
+                if (!jsonResponse.has("content")) {
+                    Log.e(TAG, "Response missing 'content' field: $responseString")
+                    throw Exception("Response missing 'content' field")
+                }
+                
                 val content = jsonResponse.getJSONArray("content")
                 
                 // Look for the text content that contains our JSON
@@ -175,28 +216,80 @@ class AnthropicService {
                         val text = item.getString("text")
                         
                         // Parse the actual quote JSON from the text content
-                        Log.d(TAG, "Found text content: ${text.take(50)}...")
-                        val analysisJson = JSONObject(text)
+                        Log.d(TAG, "Found text content: $text")
                         
-                        // Parse recommendations array
-                        val recommendationsArray = analysisJson.getJSONArray("recommendations")
-                        val recommendations = mutableListOf<String>()
-                        for (j in 0 until recommendationsArray.length()) {
-                            recommendations.add(recommendationsArray.getString(j))
+                        try {
+                            // First, try to parse directly as JSON
+                            val analysisJson = try {
+                                JSONObject(text)
+                            } catch (e: Exception) {
+                                // If direct parsing fails, try to extract JSON from markdown code blocks
+                                Log.d(TAG, "Direct JSON parsing failed, trying to extract from markdown")
+                                val jsonPattern = "```json\\s*(.+?)\\s*```"
+                                val alternatePattern = "```\\s*(.+?)\\s*```"
+                                
+                                val regex = Regex(jsonPattern, RegexOption.DOT_MATCHES_ALL)
+                                val match = regex.find(text)
+                                
+                                if (match != null) {
+                                    val jsonContent = match.groupValues[1].trim()
+                                    Log.d(TAG, "Extracted JSON from markdown: $jsonContent")
+                                    JSONObject(jsonContent)
+                                } else {
+                                    // Try alternate pattern without json specification
+                                    val altRegex = Regex(alternatePattern, RegexOption.DOT_MATCHES_ALL)
+                                    val altMatch = altRegex.find(text)
+                                    
+                                    if (altMatch != null) {
+                                        val jsonContent = altMatch.groupValues[1].trim()
+                                        Log.d(TAG, "Extracted JSON from alternate markdown: $jsonContent")
+                                        JSONObject(jsonContent)
+                                    } else {
+                                        throw Exception("Could not extract JSON from the response")
+                                    }
+                                }
+                            }
+                            
+                            // Validate required fields
+                            if (!analysisJson.has("summary")) {
+                                Log.e(TAG, "Analysis JSON missing 'summary' field: $text")
+                                throw Exception("Analysis JSON missing 'summary' field")
+                            }
+                            
+                            if (!analysisJson.has("recommendations")) {
+                                Log.e(TAG, "Analysis JSON missing 'recommendations' field: $text")
+                                throw Exception("Analysis JSON missing 'recommendations' field")
+                            }
+                            
+                            if (!analysisJson.has("suggestedImprovements")) {
+                                Log.e(TAG, "Analysis JSON missing 'suggestedImprovements' field: $text")
+                                throw Exception("Analysis JSON missing 'suggestedImprovements' field")
+                            }
+                            
+                            // Parse recommendations array
+                            val recommendationsArray = analysisJson.getJSONArray("recommendations")
+                            val recommendations = mutableListOf<String>()
+                            for (j in 0 until recommendationsArray.length()) {
+                                recommendations.add(recommendationsArray.getString(j))
+                            }
+                            
+                            // Parse suggestedImprovements array
+                            val improvementsArray = analysisJson.getJSONArray("suggestedImprovements")
+                            val improvements = mutableListOf<String>()
+                            for (j in 0 until improvementsArray.length()) {
+                                improvements.add(improvementsArray.getString(j))
+                            }
+                            
+                            return HabitAnalysis(
+                                summary = analysisJson.getString("summary"),
+                                recommendations = recommendations,
+                                suggestedImprovements = improvements
+                            )
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error parsing analysis JSON: ${e.message}", e)
+                            Log.e(TAG, "Text content: $text")
+                            throw Exception("Error parsing analysis JSON: ${e.message}")
                         }
-                        
-                        // Parse suggestedImprovements array
-                        val improvementsArray = analysisJson.getJSONArray("suggestedImprovements")
-                        val improvements = mutableListOf<String>()
-                        for (j in 0 until improvementsArray.length()) {
-                            improvements.add(improvementsArray.getString(j))
-                        }
-                        
-                        return HabitAnalysis(
-                            summary = analysisJson.getString("summary"),
-                            recommendations = recommendations,
-                            suggestedImprovements = improvements
-                        )
                     }
                 }
                 Log.e(TAG, "No text content found in response")
