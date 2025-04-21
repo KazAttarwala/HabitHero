@@ -2,6 +2,7 @@ package com.example.habithero.ui.fragments
 
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -150,7 +151,7 @@ class InsightsFragment : Fragment() {
             }
         }
     }
-    
+
     private fun observeViewModel() {
         // Observe habits for spinner
         viewModel.habits.observe(viewLifecycleOwner) { habits ->
@@ -201,6 +202,7 @@ class InsightsFragment : Fragment() {
         
         // Observe habit analysis
         viewModel.habitAnalysis.observe(viewLifecycleOwner) { analysis ->
+            Log.d("InsightsFragment", "Received analysis update: $analysis")
             updateAnalysisUI(analysis)
         }
         
@@ -247,16 +249,25 @@ class InsightsFragment : Fragment() {
     }
     
     private fun updateAnalysisUI(analysis: HabitAnalysis) {
-        // Update summary
-        binding.summaryTextView.text = analysis.summary
+        Log.d("InsightsFragment", "Updating UI with analysis")
         
-        // Update recommendations
-        val recommendationsText = analysis.recommendations.joinToString("\n\n") { "• $it" }
-        binding.recommendationsTextView.text = recommendationsText
-        
-        // Update improvements
-        val improvementsText = analysis.suggestedImprovements.joinToString("\n\n") { "• $it" }
-        binding.improvementsTextView.text = improvementsText
+        try {
+            // Update summary
+            binding.summaryTextView.text = analysis.summary
+            Log.d("InsightsFragment", "Updated summary")
+            
+            // Update recommendations
+            val recommendationsText = analysis.recommendations.joinToString("\n\n") { "• $it" }
+            binding.recommendationsTextView.text = recommendationsText
+            Log.d("InsightsFragment", "Updated recommendations")
+            
+            // Update improvements
+            val improvementsText = analysis.suggestedImprovements.joinToString("\n\n") { "• $it" }
+            binding.improvementsTextView.text = improvementsText
+            Log.d("InsightsFragment", "Updated improvements")
+        } catch (e: Exception) {
+            Log.e("InsightsFragment", "Error updating UI", e)
+        }
     }
 
     override fun onDestroyView() {

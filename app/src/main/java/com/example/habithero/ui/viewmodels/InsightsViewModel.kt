@@ -1,5 +1,6 @@
 package com.example.habithero.ui.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -243,14 +244,17 @@ class InsightsViewModel : ViewModel() {
                 _isAnalysisLoading.value = true
                 val completionRate = getCompletionRate()
                 
+                Log.d("InsightsViewModel", "Requesting analysis for habit: ${selectedHabit.title}")
                 val analysis = anthropicService.analyzeHabitData(
                     selectedHabit,
                     weeklyData,
                     completionRate
                 )
+                Log.d("InsightsViewModel", "Received analysis: $analysis")
                 
                 _habitAnalysis.value = analysis
             } catch (e: Exception) {
+                Log.e("InsightsViewModel", "Analysis failed", e)
                 _error.value = "Failed to get habit analysis: ${e.message}"
             } finally {
                 _isAnalysisLoading.value = false
