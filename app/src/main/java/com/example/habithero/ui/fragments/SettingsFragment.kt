@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import com.example.habithero.HabitHeroApplication
 
 class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
@@ -54,8 +55,27 @@ class SettingsFragment : Fragment() {
         // Set up notification settings
         setupNotificationSettings()
         
-        // Set up developer options buttons
-        setupDeveloperOptions()
+        // Only show developer options in developer mode
+        setupDeveloperOptionsVisibility()
+
+        // Add secret developer mode toggle
+        var tapCount = 0
+        binding.titleTextView.setOnClickListener {
+            tapCount++
+            if (tapCount >= 7) { // Tap 7 times to toggle developer mode
+                tapCount = 0
+                val app = requireActivity().application as HabitHeroApplication
+                app.isDeveloperMode = !app.isDeveloperMode
+                setupDeveloperOptionsVisibility()
+                
+                // Show a toast to indicate the mode change
+                Toast.makeText(
+                    requireContext(),
+                    if (app.isDeveloperMode) "Developer mode enabled" else "Developer mode disabled",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
     
     private fun setupNotificationSettings() {
@@ -130,6 +150,20 @@ class SettingsFragment : Fragment() {
             minute,
             false
         ).show()
+    }
+    
+    private fun setupDeveloperOptionsVisibility() {
+        // Show/hide developer section based on developer mode
+        val devOptionsVisible = (requireActivity().application as HabitHeroApplication).isDeveloperMode
+        
+        // Hide/show developer options section
+        binding.devOptionsHeader.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
+        binding.devDescriptionTextView.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
+        binding.generateDummyDataButton.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
+        binding.generatePatternsButton.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
+        
+        // Hide/show test notification button
+        binding.testNotificationButton.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
     }
     
     private fun setupDeveloperOptions() {

@@ -10,6 +10,7 @@ class HabitHeroApplication : Application(), Configuration.Provider {
 
     private lateinit var notificationPreferences: NotificationPreferences
     private val TAG = "HabitHeroApplication"
+    var isDeveloperMode = false
 
     override fun onCreate() {
         super.onCreate()
