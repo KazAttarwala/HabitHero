@@ -1,2 +1,0 @@
-This is a placeholder for a success sound MP3 file. 
-In a real application, you would place an actual MP3 audio file here. 
