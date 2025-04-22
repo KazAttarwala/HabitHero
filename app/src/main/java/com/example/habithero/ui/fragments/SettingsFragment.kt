@@ -53,6 +53,11 @@ class SettingsFragment : Fragment() {
         // Initialize notification preferences
         notificationPreferences = NotificationPreferences(requireContext())
         
+        // Set user's email in the UI
+        auth.currentUser?.let { user ->
+            binding.userEmailTextView.text = user.email
+        }
+        
         // Set up logout button
         binding.logoutButton.setOnClickListener {
             logoutUser()

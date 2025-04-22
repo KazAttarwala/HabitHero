@@ -15,6 +15,7 @@ import com.example.habithero.model.Habit
 import com.example.habithero.repository.UserRepository
 import com.example.habithero.ui.adapters.HabitAdapter
 import com.example.habithero.ui.viewmodels.HomeViewModel
+import com.example.habithero.ui.viewmodels.QuoteViewModel
 import com.example.habithero.utils.HabitCompletionEffect
 import com.example.habithero.utils.SoundFileCreator
 import com.google.firebase.auth.FirebaseAuth
@@ -26,6 +27,7 @@ class HomeFragment : Fragment() {
     private lateinit var auth: FirebaseAuth
     private lateinit var userRepository: UserRepository
     private val viewModel: HomeViewModel by viewModels()
+    private val quoteViewModel: QuoteViewModel by viewModels()
     private lateinit var habitAdapter: HabitAdapter
 
     override fun onCreateView(
@@ -55,18 +57,61 @@ class HomeFragment : Fragment() {
         // Create a sound file for habit completion (only needed for this example)
         SoundFileCreator.createSuccessSound(requireContext())
         
-        // Set user email in the UI
-        binding.userEmailTextView.text = currentUser.email
-        
         // Set up RecyclerView
         setupRecyclerView()
         
         // Set up observers
         observeViewModel()
         
+        // Set up quote observers
+        setupQuoteObservers()
+        
+        // Set up swipe refresh layout
+        setupSwipeRefresh()
+        
+        // Fetch a quote initially
+        quoteViewModel.fetchQuote()
+        
         // Set up add habit button click
         binding.addHabitButton.setOnClickListener {
             findNavController().navigate(R.id.action_homeFragment_to_habitEditFragment)
+        }
+    }
+    
+    private fun setupSwipeRefresh() {
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            quoteViewModel.fetchQuote()
+            viewModel.loadHabits()
+        }
+        
+        // Colors for the refresh indicator
+        binding.swipeRefreshLayout.setColorSchemeResources(
+            R.color.purple_500,
+            R.color.teal_200,
+            R.color.purple_700
+        )
+    }
+    
+    private fun setupQuoteObservers() {
+        // Observe quote
+        quoteViewModel.quote.observe(viewLifecycleOwner) { quoteResponse ->
+            binding.quoteTextView.text = "\"${quoteResponse.quote}\""
+            binding.quoteAuthorTextView.text = "- ${quoteResponse.author}"
+        }
+        
+        // Observe loading state
+        quoteViewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            binding.swipeRefreshLayout.isRefreshing = isLoading
+            if (isLoading) {
+                binding.quoteTextView.text = "Loading quote..."
+            }
+        }
+        
+        // Observe errors
+        quoteViewModel.error.observe(viewLifecycleOwner) { errorMessage ->
+            errorMessage?.let {
+                // Only log the error, don't show to user as it's not critical for the home screen
+            }
         }
     }
     
