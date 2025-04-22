@@ -175,10 +175,11 @@ class AnthropicService {
             {
                 "model": "claude-3-haiku-20240307",
                 "max_tokens": 1000,
+                "system": "You are a supportive habit-building coach in the HabitHero app. Communicate directly with users about their habits in a personalized, encouraging way. Always use 'you' when addressing the user, making them feel like they're having a conversation with a coach who is invested in their success. Format responses in JSON with keys: summary, recommendations, suggestedImprovements.",
                 "messages": [
                     {
                         "role": "user",
-                        "content": "As a habit-building expert, analyze this habit data and provide insights:\\n\\nHabit: $escapedTitle\\nDescription: $escapedDescription\\nCurrent streak: ${habit.streak} days\\nWeekly progress data: $weeklyDataStr\\nOverall completion rate: ${completionRate}%\\n\\nPlease provide:\\n1. A brief summary of progress (2-3 sentences)\\n2. Three specific recommendations for improvement\\n3. Two suggested adjustments if the user is struggling\\n\\nFormat the response in JSON with keys: summary, recommendations, suggestedImprovements\\nThe recommendations and suggestedImprovements should be arrays of strings.\\nMake all insights concise and actionable."
+                        "content": "Here's my habit data:\\n\\nHabit: $escapedTitle\\nDescription: $escapedDescription\\nWeekly progress data: $weeklyDataStr\\nOverall completion rate: ${completionRate}%\\n\\nCan you give me:\\n1. A brief summary of my progress\\n2. Three specific recommendations for improvement\\n3. Two adjustments if I'm struggling"
                     }
                 ]
             }
