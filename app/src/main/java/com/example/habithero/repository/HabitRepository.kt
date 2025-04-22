@@ -17,11 +17,20 @@ class HabitRepository {
         return auth.currentUser?.uid
     }
 
-    suspend fun getHabitsForCurrentUser(): List<Habit> {
+    suspend fun getHabitsForCurrentUser(includeDeleted: Boolean = false): List<Habit> {
         val userId = getCurrentUserId() ?: return emptyList()
         return try {
-            habitsCollection
+            val query = habitsCollection
                 .whereEqualTo("userId", userId)
+            
+            //Filter out deleted habits unless specifically requested
+            val filteredQuery = if (!includeDeleted) {
+                query.whereEqualTo("deleted", false)
+            } else {
+                query
+            }
+
+            filteredQuery
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .await()
@@ -41,6 +50,36 @@ class HabitRepository {
     suspend fun addHabit(habit: Habit): String? {
         return try {
             val userId = getCurrentUserId() ?: return null
+            
+            // Check for existing habits with the same title (including deleted ones)
+            val existingHabits = habitsCollection
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("title", habit.title)
+                .get()
+                .await()
+                .toObjects(Habit::class.java)
+                
+            // If a habit with same title exists, don't create a new one
+            if (existingHabits.isNotEmpty()) {
+                val existingHabit = existingHabits.first()
+                
+                // If it's just marked as deleted, restore it instead of creating a new one
+                if (existingHabit.deleted) {
+                    val restoredHabit = existingHabit.copy(
+                        deleted = false,
+                        streak = 0,
+                        progress = 0,
+                        completed = false,
+                        lastCompletedDate = null
+                    )
+                    habitsCollection.document(existingHabit.id).set(restoredHabit).await()
+                    return existingHabit.id
+                }
+                
+                // Otherwise, don't allow duplicate title
+                return null
+            }
+            
             val habitId = habitsCollection.document().id
             val newHabit = habit.copy(
                 id = habitId, 
@@ -58,13 +97,19 @@ class HabitRepository {
      * Get a habit by its ID
      * 
      * @param habitId The ID of the habit to get
+     * @param includeDeleted Whether to include deleted habits
      * @return The habit, or null if not found
      */
-    suspend fun getHabitById(habitId: String): Habit? {
+    suspend fun getHabitById(habitId: String, includeDeleted: Boolean = false): Habit? {
         return try {
             val document = habitsCollection.document(habitId).get().await()
             if (document.exists()) {
-                document.toObject(Habit::class.java)
+                val habit = document.toObject(Habit::class.java)
+                if (habit != null && (includeDeleted || !habit.deleted)) {
+                    habit
+                } else {
+                    null
+                }
             } else {
                 null
             }
@@ -84,6 +129,32 @@ class HabitRepository {
         }
     }
 
+    /**
+     * Soft delete a habit by marking it as deleted
+     * 
+     * @param habitId The ID of the habit to mark as deleted
+     * @return true if successful, false otherwise
+     */
+    suspend fun markHabitAsDeleted(habitId: String): Boolean {
+        return try {
+            val habit = getHabitById(habitId, includeDeleted = true)
+            if (habit != null) {
+                val updatedHabit = habit.copy(deleted = true)
+                habitsCollection.document(habitId).set(updatedHabit).await()
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("HabitRepository", "Error marking habit as deleted", e)
+            false
+        }
+    }
+
+    /**
+     * Hard delete a habit (completely removes from database)
+     * This should only be used when really necessary
+     */
     suspend fun deleteHabit(habitId: String): Boolean {
         return try {
             habitsCollection.document(habitId).delete().await()

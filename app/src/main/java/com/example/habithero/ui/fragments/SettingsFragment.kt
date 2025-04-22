@@ -316,8 +316,8 @@ class SettingsFragment : Fragment() {
         val habitEntryRepository = HabitEntryRepository()
         
         try {
-            // 1. Get all user's habits
-            val habits = habitRepository.getHabitsForCurrentUser()
+            // 1. Get all user's habits (including deleted ones)
+            val habits = habitRepository.getHabitsForCurrentUser(includeDeleted = true)
             
             // 2. Delete all habit entries for each habit
             for (habit in habits) {

@@ -35,7 +35,7 @@ class HomeViewModel : ViewModel() {
             try {
                 _isLoading.value = true
                 _error.value = null
-                val habitsFromDb = habitRepository.getHabitsForCurrentUser()
+                val habitsFromDb = habitRepository.getHabitsForCurrentUser(includeDeleted = false)
                 _habits.value = habitsFromDb
             } catch (e: Exception) {
                 _error.value = "Failed to load habits: ${e.message}"
@@ -58,7 +58,7 @@ class HomeViewModel : ViewModel() {
                     val updatedHabit = newHabit.copy(id = habitId)
                     insightsViewModel.selectHabit(updatedHabit)
                 } else {
-                    _error.value = "Failed to add habit"
+                    _error.value = "A habit with this title already exists"
                 }
             } catch (e: Exception) {
                 _error.value = "Failed to add habit: ${e.message}"
@@ -168,11 +168,18 @@ class HomeViewModel : ViewModel() {
         }
     }
     
+    /**
+     * Mark a habit as deleted but keep its entries
+     */
     fun deleteHabit(habitId: String) {
         viewModelScope.launch {
             try {
-                habitRepository.deleteHabit(habitId)
-                loadHabits() // Refresh the list
+                val success = habitRepository.markHabitAsDeleted(habitId)
+                if (success) {
+                    loadHabits() // Refresh the list
+                } else {
+                    _error.value = "Failed to delete habit"
+                }
             } catch (e: Exception) {
                 _error.value = "Failed to delete habit: ${e.message}"
             }

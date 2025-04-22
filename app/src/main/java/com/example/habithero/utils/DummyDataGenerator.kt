@@ -149,7 +149,8 @@ class DummyDataGenerator {
             completed = streak > 0,
             streak = streak,
             lastCompletedDate = lastCompletedDate,
-            createdAt = createdAt
+            createdAt = createdAt,
+            deleted = false
         )
     }
     
@@ -328,8 +329,8 @@ class DummyDataGenerator {
      * Clears all generated test data (both habits and their entries)
      */
     suspend fun clearDummyData() = withContext(Dispatchers.IO) {
-        // Get all habits for the current user
-        val habits = habitRepository.getHabitsForCurrentUser()
+        // Get all habits for the current user, including deleted ones
+        val habits = habitRepository.getHabitsForCurrentUser(includeDeleted = true)
         val habitIds = habits.map { it.id }
         
         // Delete all entries for each habit

@@ -61,7 +61,8 @@ class InsightsViewModel : ViewModel() {
             try {
                 _isLoading.value = true
                 _error.value = null
-                val habitsFromDb = habitRepository.getHabitsForCurrentUser()
+                // Include deleted habits so they appear in insights
+                val habitsFromDb = habitRepository.getHabitsForCurrentUser(includeDeleted = true)
                 _habits.value = habitsFromDb
                 
                 // Select the first habit by default if available

@@ -1,5 +1,6 @@
 package com.example.habithero.ui.fragments
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -134,6 +135,10 @@ class HomeFragment : Fragment() {
                 if (oldProgress + 1 >= habit.frequency) {
                     HabitCompletionEffect.playCompletionEffects(requireContext(), binding.konfettiView)
                 }
+            },
+            onHabitDelete = { habit ->
+                // Confirm deletion with dialog
+                showDeleteConfirmationDialog(habit)
             }
         )
         
@@ -141,6 +146,19 @@ class HomeFragment : Fragment() {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = habitAdapter
         }
+    }
+    
+    private fun showDeleteConfirmationDialog(habit: Habit) {
+        val alertDialog = AlertDialog.Builder(requireContext())
+            .setTitle("Delete Habit")
+            .setMessage("Are you sure you want to delete '${habit.title}'? Your habit history will still be available in Insights.")
+            .setPositiveButton("Delete") { _, _ ->
+                viewModel.deleteHabit(habit.id)
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+        
+        alertDialog.show()
     }
     
     private fun observeViewModel() {

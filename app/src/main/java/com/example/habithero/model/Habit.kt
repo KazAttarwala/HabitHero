@@ -14,7 +14,8 @@ data class Habit(
     val completed: Boolean = false,
     val streak: Int = 0,     // Current streak (days in a row completed)
     val lastCompletedDate: Timestamp? = null,
-    val createdAt: Timestamp = Timestamp.now()
+    val createdAt: Timestamp = Timestamp.now(),
+    val deleted: Boolean = false
 ) {
     fun getFormattedLastCompletedDate(): String {
         return lastCompletedDate?.let { 
