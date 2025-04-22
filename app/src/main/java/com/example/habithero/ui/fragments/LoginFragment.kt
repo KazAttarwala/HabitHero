@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
@@ -13,6 +14,8 @@ import com.example.habithero.R
 import com.example.habithero.databinding.FragmentLoginBinding
 import com.example.habithero.repository.UserRepository
 import com.example.habithero.ui.viewmodels.QuoteViewModel
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
@@ -79,6 +82,11 @@ class LoginFragment : Fragment() {
                 showLoading(true)
                 registerUser(email, password)
             }
+        }
+        
+        // Handle forgot password click
+        binding.forgotPasswordTextView.setOnClickListener {
+            showPasswordResetDialog()
         }
     }
     
@@ -199,6 +207,60 @@ class LoginFragment : Fragment() {
         binding.loginButton.isEnabled = !isLoading
         binding.registerButton.isEnabled = !isLoading
         binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+    }
+
+    private fun showPasswordResetDialog() {
+        val builder = MaterialAlertDialogBuilder(requireContext())
+        builder.setTitle("Reset Password")
+        
+        // Set up the input
+        val inputLayout = layoutInflater.inflate(R.layout.dialog_reset_password, null)
+        val emailInput = inputLayout.findViewById<TextInputEditText>(R.id.emailInputEditText)
+        
+        // Pre-fill with email if already entered in login form
+        if (binding.emailEditText.text.isNotEmpty()) {
+            emailInput.setText(binding.emailEditText.text.toString())
+        }
+        
+        builder.setView(inputLayout)
+        
+        // Set up the buttons
+        builder.setPositiveButton("Reset") { dialog, _ ->
+            val email = emailInput.text.toString().trim()
+            if (email.isEmpty()) {
+                Toast.makeText(requireContext(), "Please enter your email address", Toast.LENGTH_SHORT).show()
+            } else {
+                resetPassword(email)
+                dialog.dismiss()
+            }
+        }
+        
+        builder.setNegativeButton("Cancel") { dialog, _ ->
+            dialog.cancel()
+        }
+        
+        builder.show()
+    }
+
+    private fun resetPassword(email: String) {
+        showLoading(true)
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                showLoading(false)
+                if (task.isSuccessful) {
+                    Toast.makeText(
+                        requireContext(),
+                        "Password reset instructions sent to your email",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "Failed to send reset email: ${task.exception?.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
     }
 
     override fun onDestroyView() {

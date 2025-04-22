@@ -44,6 +44,16 @@
             app:layout_constraintTop_toBottomOf="@+id/accountSettingsHeader" />
 
         <Button
+            android:id="@+id/changePasswordButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Change Password"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/logoutButton" />
+
+        <Button
             android:id="@+id/deleteAccountButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -53,7 +63,7 @@
             android:textColor="@android:color/white"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/logoutButton" />
+            app:layout_constraintTop_toBottomOf="@+id/changePasswordButton" />
 
         <!-- Notification Settings Section -->
         <TextView

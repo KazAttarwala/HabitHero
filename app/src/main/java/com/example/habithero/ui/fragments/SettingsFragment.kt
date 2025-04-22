@@ -58,6 +58,11 @@ class SettingsFragment : Fragment() {
             logoutUser()
         }
         
+        // Set up change password button
+        binding.changePasswordButton.setOnClickListener {
+            showChangePasswordDialog()
+        }
+        
         // Set up delete account button
         binding.deleteAccountButton.setOnClickListener {
             confirmDeleteAccount()
@@ -327,6 +332,47 @@ class SettingsFragment : Fragment() {
             Log.e("SettingsFragment", "Error deleting user data", e)
             return false
         }
+    }
+
+    private fun showChangePasswordDialog() {
+        val currentUser = auth.currentUser
+        if (currentUser != null && currentUser.email != null) {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Change Password")
+                .setMessage("We'll send a password reset link to your email: ${currentUser.email}")
+                .setPositiveButton("Send Link") { _, _ ->
+                    sendPasswordResetEmail(currentUser.email!!)
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        } else {
+            Toast.makeText(
+                requireContext(),
+                "You must be logged in with an email address",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun sendPasswordResetEmail(email: String) {
+        binding.progressBar.visibility = View.VISIBLE
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                binding.progressBar.visibility = View.GONE
+                if (task.isSuccessful) {
+                    Toast.makeText(
+                        requireContext(),
+                        "Password reset link sent to your email",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "Failed to send reset email: ${task.exception?.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
     }
 
     override fun onDestroyView() {
