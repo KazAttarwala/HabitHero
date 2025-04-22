@@ -54,7 +54,7 @@ class SettingsFragment : Fragment() {
         
         // Set up notification settings
         setupNotificationSettings()
-        
+
         // Only show developer options in developer mode
         setupDeveloperOptionsVisibility()
 
@@ -161,6 +161,7 @@ class SettingsFragment : Fragment() {
         binding.devDescriptionTextView.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
         binding.generateDummyDataButton.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
         binding.generatePatternsButton.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
+        binding.clearDummyDataButton.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
         
         // Hide/show test notification button
         binding.testNotificationButton.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
