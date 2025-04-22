@@ -92,5 +92,10 @@ dependencies {
     
     // MPAndroidChart for data visualization
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    
+    // WorkManager for background tasks
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    implementation("com.google.guava:guava:31.1-android")
 }
 
