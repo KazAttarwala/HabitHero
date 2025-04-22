@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -15,11 +16,16 @@ import com.example.habithero.databinding.FragmentSettingsBinding
 import com.example.habithero.utils.DummyDataGenerator
 import com.example.habithero.utils.NotificationPreferences
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import com.example.habithero.HabitHeroApplication
+import com.example.habithero.repository.HabitEntryRepository
+import com.example.habithero.repository.HabitRepository
 
 class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
@@ -52,11 +58,19 @@ class SettingsFragment : Fragment() {
             logoutUser()
         }
         
+        // Set up delete account button
+        binding.deleteAccountButton.setOnClickListener {
+            confirmDeleteAccount()
+        }
+        
         // Set up notification settings
         setupNotificationSettings()
 
         // Only show developer options in developer mode
         setupDeveloperOptionsVisibility()
+        
+        // Set up developer options
+        setupDeveloperOptions()
 
         // Add secret developer mode toggle
         var tapCount = 0
@@ -231,6 +245,88 @@ class SettingsFragment : Fragment() {
         Toast.makeText(requireContext(), "Logged out successfully", Toast.LENGTH_SHORT).show()
         // Navigate back to login
         findNavController().navigate(R.id.loginFragment)
+    }
+
+    private fun confirmDeleteAccount() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Delete Account")
+            .setMessage("Are you sure you want to delete your account? This will permanently delete all your data and cannot be undone.")
+            .setPositiveButton("Delete") { _, _ ->
+                deleteUserAccount()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun deleteUserAccount() {
+        val user = auth.currentUser ?: return
+        
+        viewLifecycleOwner.lifecycleScope.launch {
+            binding.progressBar.visibility = View.VISIBLE
+            try {
+                // Delete user data from Firestore
+                val result = deleteUserData(user)
+                
+                if (result) {
+                    // Delete Firebase Auth account
+                    user.delete().await()
+                    
+                    Toast.makeText(
+                        requireContext(),
+                        "Account deleted successfully",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    
+                    // Navigate to the login screen
+                    findNavController().navigate(R.id.loginFragment)
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "Failed to delete account data",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } catch (e: Exception) {
+                Log.e("SettingsFragment", "Error deleting account", e)
+                Toast.makeText(
+                    requireContext(),
+                    "Error: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+            }
+        }
+    }
+    
+    private suspend fun deleteUserData(user: FirebaseUser): Boolean {
+        val userId = user.uid
+        val db = FirebaseFirestore.getInstance()
+        val habitRepository = HabitRepository()
+        val habitEntryRepository = HabitEntryRepository()
+        
+        try {
+            // 1. Get all user's habits
+            val habits = habitRepository.getHabitsForCurrentUser()
+            
+            // 2. Delete all habit entries for each habit
+            for (habit in habits) {
+                habitEntryRepository.deleteEntriesForHabit(habit.id)
+            }
+            
+            // 3. Delete all habits
+            for (habit in habits) {
+                habitRepository.deleteHabit(habit.id)
+            }
+            
+            // 4. Delete user document from users collection
+            db.collection("users").document(userId).delete().await()
+            
+            return true
+        } catch (e: Exception) {
+            Log.e("SettingsFragment", "Error deleting user data", e)
+            return false
+        }
     }
 
     override fun onDestroyView() {
