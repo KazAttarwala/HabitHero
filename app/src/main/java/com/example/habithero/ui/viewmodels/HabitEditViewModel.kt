@@ -64,10 +64,14 @@ class HabitEditViewModel : ViewModel() {
                 val currentHabit = _habit.value
                 val habitId = if (currentHabit != null) {
                     // Update existing habit
+                    // Recalculate completion status based on the new frequency
+                    val isStillCompleted = currentHabit.progress >= frequency
+                    
                     val updatedHabit = currentHabit.copy(
                         title = title,
                         description = description,
-                        frequency = frequency
+                        frequency = frequency,
+                        completed = isStillCompleted
                     )
                     habitRepository.updateHabit(updatedHabit)
                 } else {
