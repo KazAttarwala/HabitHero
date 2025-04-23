@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.work.Configuration
 import androidx.work.WorkManager
+import com.example.habithero.utils.MidnightResetScheduler
 import com.example.habithero.utils.NotificationPreferences
 
 class HabitHeroApplication : Application(), Configuration.Provider {
@@ -30,6 +31,10 @@ class HabitHeroApplication : Application(), Configuration.Provider {
         } else {
             Log.i(TAG, "Notifications not enabled, skipping scheduling")
         }
+        
+        // Initialize midnight habit reset worker
+        MidnightResetScheduler.initialize(this)
+        Log.i(TAG, "Midnight habit reset worker scheduled")
 
         Log.d(TAG, "Application onCreate completed")
     }

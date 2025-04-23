@@ -239,6 +239,20 @@
             app:layout_constraintStart_toEndOf="@+id/generatePatternsButton"
             app:layout_constraintTop_toTopOf="@+id/generateDummyDataButton" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/testMidnightResetButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Test Midnight Reset"
+            android:textSize="14sp"
+            android:backgroundTint="#FF5722"
+            android:textColor="@android:color/white"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@+id/generateDummyDataButton"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
         <ProgressBar
             android:id="@+id/progressBar"
             style="?android:attr/progressBarStyle"

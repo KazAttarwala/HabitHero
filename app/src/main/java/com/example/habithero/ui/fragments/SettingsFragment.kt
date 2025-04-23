@@ -26,6 +26,7 @@ import java.util.Locale
 import com.example.habithero.HabitHeroApplication
 import com.example.habithero.repository.HabitEntryRepository
 import com.example.habithero.repository.HabitRepository
+import com.example.habithero.utils.MidnightResetScheduler
 
 class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
@@ -186,6 +187,7 @@ class SettingsFragment : Fragment() {
         binding.generateDummyDataButton.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
         binding.generatePatternsButton.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
         binding.clearDummyDataButton.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
+        binding.testMidnightResetButton.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
         
         // Hide/show test notification button
         binding.testNotificationButton.visibility = if (devOptionsVisible) View.VISIBLE else View.GONE
@@ -246,6 +248,24 @@ class SettingsFragment : Fragment() {
                 } finally {
                     binding.progressBar.visibility = View.GONE
                 }
+            }
+        }
+        
+        // Test midnight reset
+        binding.testMidnightResetButton.setOnClickListener {
+            try {
+                Log.i("SettingsFragment", "🧪 Manually triggering midnight reset for debugging")
+                Toast.makeText(requireContext(), "Triggering habit reset...", Toast.LENGTH_SHORT).show()
+                
+                // Trigger the reset worker
+                MidnightResetScheduler.triggerResetForDebugging(requireContext())
+                
+                // Show message to check LogCat for results
+                Toast.makeText(requireContext(), "Check LogCat for reset logs", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Log.e("SettingsFragment", "Error triggering midnight reset: ${e.message}")
+                Log.e("SettingsFragment", "Stack trace: ${e.stackTraceToString()}")
+                Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }

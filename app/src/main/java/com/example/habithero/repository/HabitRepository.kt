@@ -121,10 +121,42 @@ class HabitRepository {
 
     suspend fun updateHabit(habit: Habit): Boolean {
         return try {
-            habitsCollection.document(habit.id).set(habit).await()
-            true
+            Log.d("HabitRepository", "📝 Updating habit: '${habit.title}' (ID: ${habit.id})")
+            Log.d("HabitRepository", "📊 Habit details - Progress: ${habit.progress}/${habit.frequency}, Completed: ${habit.completed}")
+            
+            // Verify the habit exists before updating
+            val existingHabit = habitsCollection.document(habit.id).get().await().toObject(Habit::class.java)
+            
+            if (existingHabit != null) {
+                Log.d("HabitRepository", "🔍 Found existing habit '${existingHabit.title}' with progress: ${existingHabit.progress}/${existingHabit.frequency}, completed: ${existingHabit.completed}")
+                
+                // Perform the update
+                habitsCollection.document(habit.id).set(habit).await()
+                
+                // Verify the update was successful by fetching the habit again
+                val updatedHabit = habitsCollection.document(habit.id).get().await().toObject(Habit::class.java)
+                
+                if (updatedHabit != null) {
+                    val updateSuccessful = updatedHabit.progress == habit.progress && updatedHabit.completed == habit.completed
+                    
+                    if (updateSuccessful) {
+                        Log.d("HabitRepository", "✅ Successfully updated habit '${habit.title}' (ID: ${habit.id})")
+                    } else {
+                        Log.e("HabitRepository", "⚠️ Habit updated but values don't match! Expected progress: ${habit.progress}, actual: ${updatedHabit.progress}")
+                    }
+                    
+                    return updateSuccessful
+                } else {
+                    Log.e("HabitRepository", "❌ Failed to verify update for habit '${habit.title}' (ID: ${habit.id})")
+                    return false
+                }
+            } else {
+                Log.e("HabitRepository", "❌ Cannot update habit '${habit.title}' (ID: ${habit.id}) - not found in database")
+                return false
+            }
         } catch (e: Exception) {
-            Log.e("HabitRepository", "Error updating habit", e)
+            Log.e("HabitRepository", "❌ Error updating habit '${habit.title}' (ID: ${habit.id}): ${e.message}")
+            Log.e("HabitRepository", "Stack trace: ${e.stackTraceToString()}")
             false
         }
     }
