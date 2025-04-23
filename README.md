@@ -2,8 +2,6 @@
 
 HabitHero is an Android application designed to help users build and maintain good habits through daily tracking, streaks, and personalized AI-powered insights and recommendations.
 
-<img src="screenshots/app_screenshot.png" alt="HabitHero Screenshot" width="300"/>
-
 ## Features
 
 ### Core Functionality
