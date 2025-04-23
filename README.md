@@ -68,7 +68,7 @@ HabitHero is an Android application designed to help users build and maintain go
    - Place it in the app directory
 
 4. Get an API key from Anthropic for Claude API access
-   - Add your api key in ApiConfig.kt
+   - Add your api key in local.properties file
 
 5. Build and run the project
 
